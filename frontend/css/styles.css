@@ -1,0 +1,131 @@
+/* Style for the whole page */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Header bar at the top */
+header {
+    /* Makes items appear in a row */
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 30px;
+    background: #222;
+    /* background-color: #31475e; */
+    color: white;
+}
+
+.hero {
+    text-align: center;
+    margin-top: 120px;
+}
+
+/* Chat Box Edits */
+#chatBox {
+    width: 60%;
+    margin: 30px auto;
+    padding: 15px;
+    min-height: 200px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Chatbot message layout */
+.message {
+    padding: 10px;
+    border-radius: 6px;
+    max-width: 80%;
+}
+
+.user-message {
+    background: #d1e7ff;
+    align-self: flex-end;
+}
+
+.ai-message {
+    background: #e8e8e8;
+    align-self: flex-start;
+}
+
+/* Sign Up and Login Button Edits */
+.nav-buttons {
+    /* Makes Login and Signup buttons appear side by side */
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.nav-buttons button {
+    /* Styling button */
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    font-weight: bold;
+}
+
+.nav-buttons button:hover {
+    background: #3d9140;
+}
+
+/* Search container styling */
+.search-container {
+    width: 60%;
+    margin: 20px auto;
+    display: flex;
+    gap: 10px;
+}
+
+.search-container input {
+    flex: 1;
+    padding: 10px;
+    width: 300px;
+    font-size: 16px;
+}
+
+.search-container button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* signup.html style edits */
+.signup-box {
+    width: 350px;
+    margin: 50px auto;
+    text-align: left;
+}
+
+.signup-box h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.signup-box label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.signup-box input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    background-color: #dfdada;
+    color: black;
+    cursor: pointer;
+}
+
+.signup-box button:hover {
+    background-color: #3d9140;
+}

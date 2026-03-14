@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Title that appears in browser tab -->
+    <title>
+        Software Engineering Project - Group 11
+    </title>
+
+    <!-- Link to CSS file-->
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+
+<body>
+    <!-- Everything User sees goes inside body -->
+
+    <header>
+        <!-- Top of page section -->
+        <div class="logo">
+            Software Engineering Project - Group 11
+        </div>
+
+        <div class="nav-buttons">
+            <!-- Navigation buttons -->
+            <!-- LOGIN -->
+            <button onclick="window.location.href = 'login.html'">
+                Login
+            </button>
+
+            <!-- SIGN UP -->
+            <button onclick="window.location.href = 'signup.html'">
+                Sign Up
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Main content area -->
+        <section class="hero">
+            <!-- Main comment area of page -->
+            <h1> Welcome! Ask me anything! </h1>
+            <p> This is Group 11 Software Engineering Project </p>
+
+            <!-- Chat Box -->
+            <div id="chatBox"></div>
+
+            <!-- Textbox to enter question -->
+            <div class="search-container">
+                <input type="text" id="promptInput" placeholder="Ask me anything...">
+
+                <!-- Button to enter response -->
+                <button onclick="sendPrompt()">
+                    ASK
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Link to JavaScript file -->
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
