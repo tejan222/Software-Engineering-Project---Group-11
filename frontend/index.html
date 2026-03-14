@@ -26,13 +26,18 @@
         <div class="nav-buttons">
             <!-- Navigation buttons -->
             <!-- LOGIN -->
-            <button onclick="window.location.href = 'login.html'">
+            <button id="loginButton" onclick="window.location.href = 'login.html'">
                 Login
             </button>
 
             <!-- SIGN UP -->
-            <button onclick="window.location.href = 'signup.html'">
+            <button id="signupButton" onclick="window.location.href = 'signup.html'">
                 Sign Up
+            </button>
+
+            <!-- LOGOUT -->
+            <button id="logoutButton" onclick="logoutUser()" style="display: none;">
+                Logout
             </button>
         </div>
     </header>
@@ -43,6 +48,7 @@
             <!-- Main comment area of page -->
             <h1> Welcome! Ask me anything! </h1>
             <p> This is Group 11 Software Engineering Project </p>
+            <p id="authStatus">Checking login status...</p>
 
             <!-- Chat Box -->
             <div id="chatBox"></div>
