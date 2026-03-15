@@ -5,6 +5,11 @@ const bcrypt = require("bcryptjs");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { normalizeEmail, validateSignupInput } = require("./authValidation");
+const {
+    normalizeLoginInput,
+    userAlreadyExists,
+    loginUserExists
+} = require("./authHelpers");
 
 const app = express();
 const PORT = 3000;
@@ -67,7 +72,7 @@ app.post("/api/auth/signup", async (req, res) => {
             return res.status(500).json({ message: "Database error." });
         }
 
-        if (row) {
+        if (userAlreadyExists(row)) {
             return res.status(409).json({ message: "User already exists." });
         }
 
@@ -121,7 +126,8 @@ app.post("/api/auth/signup", async (req, res) => {
 
 // LOGIN
 app.post("/api/auth/login", (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = normalizeLoginInput(email);
 
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required." });
@@ -136,7 +142,7 @@ app.post("/api/auth/login", (req, res) => {
                 return res.status(500).json({ message: "Database error." });
             }
 
-            if (!user) {
+            if (!loginUserExists(user)) {
                 return res.status(401).json({ message: "Invalid email or password." });
             }
 
