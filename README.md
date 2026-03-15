@@ -18,7 +18,7 @@ The backend is implemented using Node.js, Express, and SQLite, and authenticatio
 ## Project Structure
 backend/
     server.js                  Express backend server
-    users.db                   SQLite database
+    users.db                   SQLite database (will be created automatically when the server first runs)
     authValidation.js          Input validation helpers
     authHelpers.js             Authentication helper functions
     spec/
