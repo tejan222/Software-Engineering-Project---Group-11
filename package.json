@@ -1,0 +1,29 @@
+{
+  "name": "software-engineering-project---group-11",
+  "version": "1.0.0",
+  "description": "This is the GitHub Repository for Group 11's Iteration 1 of Software Engineering (14:332:452) course project.\r Group 11: Tejashree Nagaraj, Shruthi Shankar, Yeshaswini Karthik Babu, Chen Chen, Yang Chen, Anthony Daoud",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tejan222/Software-Engineering-Project---Group-11.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tejan222/Software-Engineering-Project---Group-11/issues"
+  },
+  "homepage": "https://github.com/tejan222/Software-Engineering-Project---Group-11#readme",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.7.0",
+    "jasmine": "^6.1.0",
+    "puppeteer": "^19.11.1"
+  },
+  "dependencies": {
+    "expect": "^30.3.0"
+  }
+}
