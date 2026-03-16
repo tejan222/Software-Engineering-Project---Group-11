@@ -76,3 +76,9 @@ npm test
 This runs the Jasmine test suites:
 - authValidationSpec.js
 - authHelpersSpec.js
+
+## Running End to End Tests
+We are using Cucumber and Puppeteer to simulate real user interactions.
+- Ensure that the Backend Server is running at 'http://localhost:3000'
+- Ensure the Frontend is running via Live Server at 'http://localhost:5500'
+- From root directory run : npx cucumber-js
