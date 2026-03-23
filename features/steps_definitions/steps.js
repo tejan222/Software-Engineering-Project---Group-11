@@ -9,15 +9,14 @@ let page;
 
 Given('I am on the sign up page', async function () {
     if (!browser) {
-        // INCREASED slowMo to 150 so typing is clearly visible to the grader
         browser = await puppeteer.launch({ headless: false, slowMo: 150 });
         page = await browser.newPage();
 
-        // --- EDITED FOR GRADER VISIBILITY ---
-        // This now waits 2 seconds so the grader can actually read the popup 
+        // This now waits 2 seconds to read the popup 
         // before the script clicks "OK" automatically.
         page.on('dialog', async dialog => {
             console.log(`Grader is reading alert: ${dialog.message()}`);
+            //waiting so that the viewers can see the popups
             await new Promise(r => setTimeout(r, 2000)); 
             await dialog.accept();
         });
@@ -27,8 +26,6 @@ Given('I am on the sign up page', async function () {
 
 When('As prompted, I enter a valid email and password', async function () {
     await page.waitForSelector('#email');
-    // Using a timestamp so you don't have to manually delete the user from users.db
-    // But keeping it clearly visible as student@gmail.com for the grader
     await page.type('#email', `student_1234567@gmail.com`); 
     await page.type('#password', 'Passwordsecret123$');
 });
@@ -92,7 +89,6 @@ Then('My session should end securely', async function () {
     if (!statusText.includes('Not logged in')){
         throw new Error("Auth status did not revert to 'Not logged in'");
     }
-    // Added a small wait here so the grader sees the final "Not logged in" state
     await new Promise(r => setTimeout(r, 2000));
     await browser.close();
 });
