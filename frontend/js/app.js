@@ -93,6 +93,7 @@ async function checkLoginStatus() {
     const logoutButton = document.getElementById("logoutButton");
     const loginButton = document.getElementById("loginButton");
     const signupButton = document.getElementById("signupButton");
+    const historyButton = document.getElementById("historyButton");
 
     if (!statusElement) {
         return;
@@ -118,6 +119,9 @@ async function checkLoginStatus() {
             if (signupButton) {
                 signupButton.style.display = "none";
             }
+            if (historyButton) {
+                historyButton.style.display = "inline-block";
+            }
         } else {
             statusElement.textContent = "Not logged in.";
 
@@ -129,6 +133,9 @@ async function checkLoginStatus() {
             }
             if (signupButton) {
                 signupButton.style.display = "inline-block";
+            }
+            if (historyButton) {
+                historyButton.style.display = "none";
             }
         }
     } catch (error) {

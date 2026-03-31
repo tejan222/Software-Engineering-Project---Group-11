@@ -95,6 +95,18 @@ header {
     cursor: pointer;
 }
 
+.new-chat-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px auto;
+}
+
+.new-chat-container button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
 /* signup.html style edits */
 .signup-box {
     width: 350px;

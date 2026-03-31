@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conversation</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            Software Engineering Project - Group 11
+        </div>
+
+        <div class="nav-buttons">
+            <button onclick="window.location.href='history.html'">
+                Conversation History
+            </button>
+            <button onclick="logoutUser()">
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <button onclick="window.location.href='history.html'">&lt; Back</button>
+            <h1 id="conversationTitle">Chat</h1>
+
+            <div id="chatBox"></div>
+
+            <div class="search-container">
+                <input type="text" id="promptInput" placeholder="Ask me anything...">
+                <button onclick="sendPrompt()">ASK</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
