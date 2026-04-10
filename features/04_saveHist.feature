@@ -7,4 +7,4 @@ Feature: Save conversation History
         Given I am logged in as a registered user
         When I send a message "Hello!"
         Then the message should be stored in my conversation history
-        And I should see my message in conversation history 
+        And I should see my message in conversation history

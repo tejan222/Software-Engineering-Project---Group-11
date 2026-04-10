@@ -1,0 +1,9 @@
+node_modules/
+backend/node_modules/
+backend/users.db
+
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

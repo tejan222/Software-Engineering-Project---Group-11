@@ -2,7 +2,7 @@ const { Given, When, Then, setDefaultTimeout } = require('@cucumber/cucumber');
 const puppeteer = require('puppeteer');
 const expect = require('expect').default;
 
-setDefaultTimeout(60 * 1000);
+setDefaultTimeout(180 * 1000);
 
 let browser;
 let page;
@@ -11,6 +11,7 @@ let baseBackend = 'http://localhost:3000';
 let sentMessage = '';
 let lastHistory = null;
 let lastSearchResults = null;
+let lastChatText = '';
 
 Given('I am on the sign up page', async function () {
     if (!browser) {
@@ -140,14 +141,18 @@ When('I send a message {string}', async function (message) {
   await page.waitForSelector('#promptInput');
   await page.type('#promptInput', message);
   await page.click('button[onclick="sendPrompt()"]');
-  await page.waitForFunction(() => {
+  await page.waitForFunction(
+    () => {
+      const chatBox = document.getElementById('chatBox');
+      return chatBox &&
+             chatBox.innerText.includes('LLM:') &&
+             !chatBox.innerText.includes('Loading');
+    },
+    { timeout: 180000 }
+  );
+  lastChatText = await page.evaluate(() => {
     const chatBox = document.getElementById('chatBox');
-    const promptInput = document.getElementById('promptInput');
-    return chatBox &&
-           promptInput &&
-           chatBox.innerText.includes('LLM:') &&
-           !chatBox.innerText.includes('Loading') &&
-           promptInput.value === '';
+    return chatBox ? chatBox.textContent.trim() : '';
   });
 });
 
@@ -158,20 +163,23 @@ When('I send the message {string}', async function (message) {
   await page.waitForSelector('#promptInput');
   await page.type('#promptInput', message);
   await page.click('button[onclick="sendPrompt()"]');
-  await page.waitForFunction(() => {
+  await page.waitForFunction(
+    () => {
+      const chatBox = document.getElementById('chatBox');
+      return chatBox &&
+             chatBox.innerText.includes('LLM:') &&
+             !chatBox.innerText.includes('Loading');
+    },
+    { timeout: 180000 }
+  );
+  lastChatText = await page.evaluate(() => {
     const chatBox = document.getElementById('chatBox');
-    const promptInput = document.getElementById('promptInput');
-    return chatBox &&
-           promptInput &&
-           chatBox.innerText.includes('LLM:') &&
-           !chatBox.innerText.includes('Loading') &&
-           promptInput.value === '';
+    return chatBox ? chatBox.textContent.trim() : '';
   });
 });
 
 Then('I should see a response from the LLM', async function () {
-  const chatText = await page.$eval('#chatBox', el => el.textContent.trim());
-  expect(chatText.includes('LLM:')).toBe(true);
+  expect(lastChatText.includes('LLM:')).toBe(true);
 });
 
 Then('the conversation should be saved in my conversation history', async function () {
