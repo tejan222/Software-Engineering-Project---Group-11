@@ -20,6 +20,9 @@
     "sqlite3": "^6.0.1"
   },
   "devDependencies": {
-    "jasmine": "^6.1.0"
+    "@cucumber/cucumber": "^12.7.0",
+    "expect": "^30.3.0",
+    "jasmine": "^6.1.0",
+    "puppeteer": "^24.40.0"
   }
 }
