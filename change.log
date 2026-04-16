@@ -1,3 +1,30 @@
 Feature 1: LLM integration. [PR https://github.com/tejan222/Software-Engineering-Project---Group-11/pull/4]
 Feature 2: Save conversation history. [PR https://github.com/tejan222/Software-Engineering-Project---Group-11/pull/5]
 Feature 3: View & search conversation history. [PR https://github.com/tejan222/Software-Engineering-Project---Group-11/pull/6]
+# Change Log - Iteration 2
+
+## Feature 1: Save Conversation History (Story Points: 4)
+- **Description**: Automatically save user prompts and LLM responses with timestamps
+- **Implementation**: Added database schema and auto-save on each message exchange
+- **PR Links**: [To be added after development]
+- **Status**: Completed
+
+## Feature 2: View Conversation History (Story Points: 3)
+- **Description**: Users can view all past conversations in a dedicated history page
+- **Implementation**: Created `/history` page that displays all saved conversations
+- **PR Links**: [To be added after development]
+- **Status**: Completed
+
+## Feature 3: Search Conversation History (Story Points: 5)
+- **Description**: Search through conversations using keywords
+- **Implementation**: Added search functionality to filter conversations by content
+- **PR Links**: [To be added after development]
+- **Status**: Completed
+
+## Technical Updates
+- Added SQLite database for conversation storage
+- Created new API endpoints: `/api/conversations`, `/api/conversations/search`, `/api/conversations/save`
+- Updated chat interface to automatically save messages
+- Added history page with search capabilities
+- Implemented E2E tests with Cucumber
+- Updated CSS for responsive design
