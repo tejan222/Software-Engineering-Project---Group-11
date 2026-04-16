@@ -35,6 +35,11 @@
                 Sign Up
             </button>
 
+            <!--    CHAT HISTORY -->
+            <button id="historyButton" onclick="window.location.href = 'history.html'" style="display: none;">
+                Conversation History
+            </button>
+
             <!-- LOGOUT -->
             <button id="logoutButton" onclick="logoutUser()" style="display: none;">
                 Logout
@@ -50,16 +55,9 @@
             <p> This is Group 11 Software Engineering Project </p>
             <p id="authStatus">Checking login status...</p>
 
-            <!-- Chat Box -->
-            <div id="chatBox"></div>
-
-            <!-- Textbox to enter question -->
-            <div class="search-container">
-                <input type="text" id="promptInput" placeholder="Ask me anything...">
-
-                <!-- Button to enter response -->
-                <button onclick="sendPrompt()">
-                    ASK
+            <div class="new-chat-container">
+                <button onclick="startNewChat()">
+                    New Chat
                 </button>
             </div>
         </section>

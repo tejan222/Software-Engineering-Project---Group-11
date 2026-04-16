@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conversation History</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            Software Engineering Project - Group 11
+        </div>
+
+        <div class="nav-buttons">
+            <button onclick="window.location.href='index.html'">
+                Home
+            </button>
+            <button onclick="logoutUser()">
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
+                &lt; Back
+            </button>
+            <h1>Conversation History</h1>
+
+            <div class="search-container">
+                <input type="text" id="historySearchInput" placeholder="Search conversations...">
+                <button onclick="searchHistory()">Search</button>
+            </div>
+
+            <div id="historyList"></div>
+
+            <button onclick="startNewChat()">New Chat</button>
+        </section>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
