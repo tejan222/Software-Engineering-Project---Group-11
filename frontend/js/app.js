@@ -158,19 +158,21 @@ async function sendPrompt() {
         return;
     }
 
+    let interval;
+    let loadingElement;
     try {
         // User message
         chatBox.innerHTML += `<p><strong>You:</strong> ${prompt}</p>`;
         chatBox.scrollTop = chatBox.scrollHeight;
 
         // Loading element
-        const loadingElement = document.createElement("p");
+        loadingElement = document.createElement("p");
         chatBox.appendChild(loadingElement);
         chatBox.scrollTop = chatBox.scrollHeight;
 
         // Animated dots
         let dots = 0;
-        const interval = setInterval(() => {
+        interval = setInterval(() => {
             dots = (dots + 1) % 4;
             loadingElement.innerHTML = `<strong>LLM:</strong> Loading${".".repeat(dots)}`;
         }, 500);
@@ -207,9 +209,13 @@ async function sendPrompt() {
 
         promptInput.value = "";
     } catch (error) {
-        clearInterval(interval);
+        if (interval){
+            clearInterval(interval);
+        }
         console.error("Chat error:", error);
-        loadingElement.innerHTML = `<strong>LLM:</strong> Error: Could not connect.`;
+        if (loadingElement){
+            loadingElement.innerHTML = `<strong>LLM:</strong> Error: Could not connect.`;
+        }
     }
 }
 
