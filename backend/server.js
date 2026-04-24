@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
@@ -6,8 +8,7 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { normalizeEmail, validateSignupInput } = require("./authValidation");
 const OLLAMA_URL = "http://localhost:11434/api/chat";
-const OLLAMA_MODEL = "qwen2.5:7b";
-// const fetch = require("node-fetch");
+const OLLAMA_MODEL = "llama3.2:3b";
 const {
     normalizeLoginInput,
     userAlreadyExists,
@@ -59,9 +60,6 @@ db.run(`
         FOREIGN KEY (conversation_id) REFERENCES conversations(id)
     )
 `);
-
-// Temporary in-memory user store (replaced by SQLite)
-//const users = [];
 
 // Middleware
 app.use(express.json());
@@ -125,32 +123,6 @@ app.post("/api/auth/signup", async (req, res) => {
     });
 });
 
-// Signup route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/signup", (req, res) => {
-//const { email, password, confirmPassword } = req.body;
-
-//if (!email || !password || !confirmPassword) {
-//return res.status(400).json({ message: "All fields are required." });
-//}
-
-//if (password !== confirmPassword) {
-//return res.status(400).json({ message: "Passwords do not match." });
-//}
-
-// specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
-//if (!specialCharRegex.test(password)) {
-//return res.status(400).json({ message: "Password must contain at least one special character." });
-//}
-
-//const existingUser = users.find(user => user.email === email);
-//if (existingUser) {
-//return res.status(409).json({ message: "User already exists." });
-//}
-
-//users.push({ email, password });
-//res.status(201).json({ message: "Signup successful." });
-//});
-
 // LOGIN
 app.post("/api/auth/login", (req, res) => {
     let { email, password } = req.body;
@@ -197,20 +169,6 @@ app.post("/api/auth/login", (req, res) => {
     );
 });
 
-// Login route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/login", (req, res) => {
-//const { email, password } = req.body;
-
-//const user = users.find(user => user.email === email && user.password === password);
-
-//if (!user) {
-//return res.status(401).json({ message: "Invalid email or password." });
-//}
-
-//req.session.user = { email: user.email };
-//res.json({ message: "Login successful.", user: req.session.user });
-//});
-
 // LOGOUT
 app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
@@ -222,16 +180,6 @@ app.post("/api/auth/logout", (req, res) => {
         res.json({ message: "Logout successful." });
     });
 });
-
-// Logout route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/logout", (req, res) => {
-//req.session.destroy(err => {
-//if (err) {
-//return res.status(500).json({ message: "Logout failed." });
-//}
-//res.json({ message: "Logout successful." });
-//});
-//});
 
 // CURRENT USER
 app.get("/api/auth/me", (req, res) => {
@@ -460,6 +408,148 @@ app.get("/api/history/:id", (req, res) => {
             );
         }
     );
+});
+
+// =============================================
+// MULTI-LLM CHAT ENDPOINT
+// =============================================
+
+// Multi-LLM configuration
+const LLM_CONFIGS = [
+    {
+        name: "Ollama (Local)",
+        url: "http://localhost:11434/api/chat",
+        type: "ollama",
+        model: "llama3.2:3b"
+    },
+    {
+        name: "Gemini",
+        url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        type: "gemini",
+        model: "gemini-2.5-flash"
+    }
+];
+
+// Helper: query a single LLM
+async function queryLLM(llmConfig, prompt) {
+    const startTime = Date.now();
+    try {
+        let response, data, reply;
+
+        if (llmConfig.type === "ollama") {
+            response = await fetch(llmConfig.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: llmConfig.model,
+                    messages: [{ role: "user", content: prompt }],
+                    stream: false
+                })
+            });
+            data = await response.json();
+            reply = data.message?.content || "No response";
+
+        } else if (llmConfig.type === "gemini") {
+            const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+            response = await fetch(`${llmConfig.url}?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+            data = await response.json();
+            reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+        }
+
+        return {
+            llm: llmConfig.name,
+            reply,
+            responseTime: Date.now() - startTime,
+            success: true
+        };
+
+    } catch (error) {
+        return {
+            llm: llmConfig.name,
+            reply: `Error: ${error.message}`,
+            responseTime: Date.now() - startTime,
+            success: false
+        };
+    }
+}
+
+// POST /api/multi-chat
+app.post("/api/multi-chat", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ message: "Not logged in." });
+    }
+
+    const { prompt, llms } = req.body;
+
+    if (!prompt || !prompt.trim()) {
+        return res.status(400).json({ message: "Prompt is required." });
+    }
+
+    const selectedLLMs = llms && llms.length > 0
+        ? LLM_CONFIGS.filter(c => llms.includes(c.name))
+        : LLM_CONFIGS;
+
+    if (selectedLLMs.length === 0) {
+        return res.status(400).json({ message: "No valid LLMs selected." });
+    }
+
+    const trimmedPrompt = prompt.trim();
+
+    const results = await Promise.all(
+        selectedLLMs.map(llmConfig => queryLLM(llmConfig, trimmedPrompt))
+    );
+
+    const userId = req.session.user.id;
+    const title = trimmedPrompt.length > 40
+        ? `${trimmedPrompt.slice(0, 40)}...`
+        : trimmedPrompt;
+
+    db.run(
+        "INSERT INTO conversations (user_id, title) VALUES (?, ?)",
+        [userId, `[Multi] ${title}`],
+        function (convErr) {
+            if (convErr) {
+                console.error("Multi-chat conversation insert error:", convErr.message);
+            }
+
+            const convId = this.lastID;
+
+            db.run(
+                "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                [convId, "user", trimmedPrompt]
+            );
+
+            results.forEach(result => {
+                db.run(
+                    "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                    [convId, result.llm, result.reply]
+                );
+            });
+        }
+    );
+
+    return res.json({
+        message: "Multi-chat successful.",
+        prompt: trimmedPrompt,
+        results
+    });
+});
+
+// GET /api/multi-chat/llms
+app.get("/api/multi-chat/llms", (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ message: "Not logged in." });
+    }
+
+    return res.json({
+        llms: LLM_CONFIGS.map(c => ({ name: c.name, model: c.model }))
+    });
 });
 
 app.listen(PORT, () => {

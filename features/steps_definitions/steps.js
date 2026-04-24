@@ -12,6 +12,9 @@ let sentMessage = '';
 let lastHistory = null;
 let lastSearchResults = null;
 let lastChatText = '';
+let multiChatResults = null;
+let selectedLLMs = [];
+let sentPrompt = '';
 
 Given('I am on the sign up page', async function () {
     if (!browser) {
@@ -276,4 +279,68 @@ Then('I should see all matching messages containing {string}', async function (k
     browser = null;
     page = null;
   }
+});
+
+// --- MULTI-CHAT SECTION ---
+
+When('I send the message {string} to all LLMs', async function (message) {
+    sentPrompt = message;
+    const cookies = await page.cookies();
+    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    const response = await fetch(`${baseBackend}/api/multi-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+        body: JSON.stringify({ prompt: message, llms: [] })
+    });
+    const data = await response.json();
+    multiChatResults = data.results || [];
+});
+
+Then('I should see a response from {string}', async function (llmName) {
+    const result = multiChatResults.find(r => r.llm === llmName);
+    expect(!!result).toBe(true);
+});
+
+When('I select {string} and {string}', async function (llm1, llm2) {
+    selectedLLMs = [llm1, llm2];
+});
+
+Then('I should see responses from exactly {int} LLMs', async function (count) {
+    expect(multiChatResults.length).toBe(count);
+});
+
+Then('I should not see a response from {string}', async function (llmName) {
+    const result = multiChatResults.find(r => r.llm === llmName);
+    expect(!!result).toBe(false);
+});
+
+Then('the conversation title should start with {string}', async function (prefix) {
+    const cookies = await page.cookies();
+    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    const response = await fetch(`${baseBackend}/api/history`, {
+        method: 'GET',
+        headers: { Cookie: cookieHeader }
+    });
+    const data = await response.json();
+    const conversations = data.conversations || [];
+    const found = conversations.some(c => c.title.startsWith(prefix));
+    expect(found).toBe(true);
+    if (browser) { await browser.close(); browser = null; page = null; }
+});
+
+When('I send an empty message to multiple LLMs', async function () {
+    const cookies = await page.cookies();
+    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    const response = await fetch(`${baseBackend}/api/multi-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+        body: JSON.stringify({ prompt: '', llms: [] })
+    });
+    const data = await response.json();
+    multiChatResults = data;
+});
+
+Then('I should see an error message {string}', async function (errorMessage) {
+    expect(multiChatResults.message).toBe(errorMessage);
+    if (browser) { await browser.close(); browser = null; page = null; }
 });
