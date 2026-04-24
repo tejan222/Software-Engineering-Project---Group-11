@@ -1,0 +1,37 @@
+{
+  "name": "software-engineering-project-group-11-individual",
+  "version": "1.0.0",
+  "description": "Group 11 Software Engineering Project - Multi-LLM Chat Application",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:unit": "cd backend && npx jasmine tests/unit/*.test.js || echo 'No unit tests found'",
+    "test:acceptance": "cd backend && npx cucumber-js tests/acceptance/features || echo 'No acceptance tests found'",
+    "test:e2e": "cd backend && node tests/e2e/puppeteer.test.js || echo 'No E2E tests found'",
+    "test:all": "npm run test:unit && npm run test:acceptance && npm run test:e2e",
+    "dev": "cd backend && nodemon server.js"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.8.1",
+    "expect": "^30.3.0",
+    "jasmine": "^6.1.0",
+    "nodemon": "^3.0.1",
+    "puppeteer": "^24.40.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "sqlite3": "^6.0.1"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+
