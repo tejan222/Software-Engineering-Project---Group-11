@@ -5,14 +5,27 @@ const bcrypt = require("bcryptjs");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { normalizeEmail, validateSignupInput } = require("./authValidation");
-const OLLAMA_URL = "http://localhost:11434/api/chat";
-const OLLAMA_MODEL = "qwen2.5:7b";
-// const fetch = require("node-fetch");
 const {
     normalizeLoginInput,
     userAlreadyExists,
     loginUserExists
 } = require("./authHelpers");
+const {
+    resolveThreeLLMModelsFromLists,
+    getFallbackBestIndex,
+    buildJudgePrompt,
+    parseJudgeReply,
+    selectJudgeModel
+} = require("./llmHelpers");
+
+const OLLAMA_CHAT_URL = "http://localhost:11434/api/chat";
+const OLLAMA_TAGS_URL = "http://localhost:11434/api/tags";
+const OLLAMA_PRIMARY_MODEL = process.env.OLLAMA_PRIMARY_MODEL || "qwen2.5:7b";
+const DEFAULT_THREE_LLM_MODELS = [
+    process.env.OLLAMA_MODEL_1 || "qwen2.5:7b",
+    process.env.OLLAMA_MODEL_2 || "llama3.2:3b",
+    process.env.OLLAMA_MODEL_3 || "mistral:7b"
+];
 
 const app = express();
 const PORT = 3000;
@@ -59,9 +72,6 @@ db.run(`
         FOREIGN KEY (conversation_id) REFERENCES conversations(id)
     )
 `);
-
-// Temporary in-memory user store (replaced by SQLite)
-//const users = [];
 
 // Middleware
 app.use(express.json());
@@ -125,32 +135,6 @@ app.post("/api/auth/signup", async (req, res) => {
     });
 });
 
-// Signup route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/signup", (req, res) => {
-//const { email, password, confirmPassword } = req.body;
-
-//if (!email || !password || !confirmPassword) {
-//return res.status(400).json({ message: "All fields are required." });
-//}
-
-//if (password !== confirmPassword) {
-//return res.status(400).json({ message: "Passwords do not match." });
-//}
-
-// specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
-//if (!specialCharRegex.test(password)) {
-//return res.status(400).json({ message: "Password must contain at least one special character." });
-//}
-
-//const existingUser = users.find(user => user.email === email);
-//if (existingUser) {
-//return res.status(409).json({ message: "User already exists." });
-//}
-
-//users.push({ email, password });
-//res.status(201).json({ message: "Signup successful." });
-//});
-
 // LOGIN
 app.post("/api/auth/login", (req, res) => {
     let { email, password } = req.body;
@@ -197,20 +181,6 @@ app.post("/api/auth/login", (req, res) => {
     );
 });
 
-// Login route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/login", (req, res) => {
-//const { email, password } = req.body;
-
-//const user = users.find(user => user.email === email && user.password === password);
-
-//if (!user) {
-//return res.status(401).json({ message: "Invalid email or password." });
-//}
-
-//req.session.user = { email: user.email };
-//res.json({ message: "Login successful.", user: req.session.user });
-//});
-
 // LOGOUT
 app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
@@ -223,16 +193,6 @@ app.post("/api/auth/logout", (req, res) => {
     });
 });
 
-// Logout route using in-memory user store (replaced by SQLite)
-//app.post("/api/auth/logout", (req, res) => {
-//req.session.destroy(err => {
-//if (err) {
-//return res.status(500).json({ message: "Logout failed." });
-//}
-//res.json({ message: "Logout successful." });
-//});
-//});
-
 // CURRENT USER
 app.get("/api/auth/me", (req, res) => {
     if (!req.session.user) {
@@ -242,13 +202,86 @@ app.get("/api/auth/me", (req, res) => {
     return res.json({ user: req.session.user });
 });
 
+// helper
+async function getLLMReply(promptText, modelName = OLLAMA_PRIMARY_MODEL) {
+    const ollamaResponse = await fetch(OLLAMA_CHAT_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: modelName,
+            messages: [
+                {
+                    role: "user",
+                    content: promptText
+                }
+            ],
+            stream: false
+        })
+    });
+
+    if (!ollamaResponse.ok) {
+        const errorText = await ollamaResponse.text();
+        console.error("Ollama API error:", errorText);
+        throw new Error("Ollama request failed.");
+    }
+
+    const ollamaData = await ollamaResponse.json();
+    return ollamaData.message?.content || "";
+}
+
+async function getAvailableOllamaModels() {
+    const response = await fetch(OLLAMA_TAGS_URL);
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Ollama tags API error:", errorText);
+        throw new Error("Could not fetch Ollama models.");
+    }
+
+    const data = await response.json();
+    return (data.models || []).map((model) => model.name);
+}
+
+async function resolveThreeLLMModels() {
+    const availableModels = await getAvailableOllamaModels();
+    const selectedModels = resolveThreeLLMModelsFromLists(
+        availableModels,
+        DEFAULT_THREE_LLM_MODELS,
+        3
+    );
+
+    if (selectedModels.length < 3) {
+        throw new Error(
+            "3-LLM mode needs at least three different Ollama models installed."
+        );
+    }
+
+    return selectedModels.slice(0, 3);
+}
+
+async function pickBestReplyWithLLM(userPrompt, replies, judgeModel = OLLAMA_PRIMARY_MODEL) {
+    const judgePrompt = buildJudgePrompt(userPrompt, replies);
+    const judgeReply = await getLLMReply(judgePrompt, judgeModel);
+    const parsedBestIndex = parseJudgeReply(judgeReply);
+
+    if (parsedBestIndex === null) {
+        console.warn("Judge model returned unexpected result:", judgeReply);
+        return getFallbackBestIndex(replies);
+    }
+
+    return parsedBestIndex;
+}
+
 // CHAT WITH OLLAMA
 app.post("/api/chat", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    const { prompt, conversationId } = req.body;
+    const { prompt, conversationId, useThreeLLM } = req.body;
+    console.log("useThreeLLM from frontend:", useThreeLLM);
 
     if (!prompt || !prompt.trim()) {
         return res.status(400).json({ message: "Prompt is required." });
@@ -258,31 +291,25 @@ app.post("/api/chat", async (req, res) => {
     const trimmedPrompt = prompt.trim();
 
     try {
-        const ollamaResponse = await fetch(OLLAMA_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: OLLAMA_MODEL,
-                messages: [
-                    {
-                        role: "user",
-                        content: trimmedPrompt
-                    }
-                ],
-                stream: false
-            })
-        });
+        let result;
 
-        if (!ollamaResponse.ok) {
-            const errorText = await ollamaResponse.text();
-            console.error("Ollama API error:", errorText);
-            return res.status(502).json({ message: "Ollama request failed." });
+        if (useThreeLLM) {
+            const modelNames = await resolveThreeLLMModels();
+            const responses = await Promise.all(
+                modelNames.map(async (modelName) => ({
+                    model: modelName,
+                    reply: await getLLMReply(trimmedPrompt, modelName)
+                }))
+            );
+            const replies = responses.map((responseItem) => responseItem.reply);
+            const judgeModel = selectJudgeModel(OLLAMA_PRIMARY_MODEL, modelNames);
+            const bestIndex = await pickBestReplyWithLLM(trimmedPrompt, replies, judgeModel);
+
+            result = { responses, bestIndex };
+        } else {
+            const reply = await getLLMReply(trimmedPrompt);
+            result = { reply };
         }
-
-        const ollamaData = await ollamaResponse.json();
-        const reply = ollamaData.message?.content || "";
 
         const saveMessages = (activeConversationId) => {
             db.run(
@@ -294,32 +321,85 @@ app.post("/api/chat", async (req, res) => {
                         return res.status(500).json({ message: "Could not save user message." });
                     }
 
-                    db.run(
-                        "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
-                        [activeConversationId, "llm", reply],
-                        function (llmMsgErr) {
-                            if (llmMsgErr) {
-                                console.error("LLM message insert error:", llmMsgErr.message);
-                                return res.status(500).json({ message: "Could not save LLM message." });
+                    if (useThreeLLM && result.responses) {
+                        let completed = 0;
+                        let hasError = false;
+
+                        result.responses.forEach((responseItem, index) => {
+                            const senderParts = [
+                                `llm${index + 1}`,
+                                responseItem.model
+                            ];
+
+                            if (index === result.bestIndex) {
+                                senderParts.push("best");
                             }
 
+                            const sender = senderParts.join("|");
+
                             db.run(
-                                "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                                [activeConversationId],
-                                function (updateErr) {
-                                    if (updateErr) {
-                                        console.error("Conversation update error:", updateErr.message);
+                                "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                                [activeConversationId, sender, responseItem.reply],
+                                function (llmMsgErr) {
+                                    if (hasError) return;
+
+                                    if (llmMsgErr) {
+                                        hasError = true;
+                                        console.error("LLM message insert error:", llmMsgErr.message);
+                                        return res.status(500).json({ message: "Could not save LLM messages." });
                                     }
 
-                                    return res.json({
-                                        message: "Chat successful.",
-                                        reply,
-                                        conversationId: activeConversationId
-                                    });
+                                    completed += 1;
+
+                                    if (completed === result.responses.length) {
+                                        db.run(
+                                            "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                                            [activeConversationId],
+                                            function (updateErr) {
+                                                if (updateErr) {
+                                                    console.error("Conversation update error:", updateErr.message);
+                                                }
+
+                                                return res.json({
+                                                    message: "Chat successful.",
+                                                    responses: result.responses,
+                                                    bestIndex: result.bestIndex,
+                                                    conversationId: activeConversationId
+                                                });
+                                            }
+                                        );
+                                    }
                                 }
                             );
-                        }
-                    );
+                        });
+                    } else {
+                        db.run(
+                            "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                            [activeConversationId, "llm", result.reply],
+                            function (llmMsgErr) {
+                                if (llmMsgErr) {
+                                    console.error("LLM message insert error:", llmMsgErr.message);
+                                    return res.status(500).json({ message: "Could not save LLM message." });
+                                }
+
+                                db.run(
+                                    "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                                    [activeConversationId],
+                                    function (updateErr) {
+                                        if (updateErr) {
+                                            console.error("Conversation update error:", updateErr.message);
+                                        }
+
+                                        return res.json({
+                                            message: "Chat successful.",
+                                            reply: result.reply,
+                                            conversationId: activeConversationId
+                                        });
+                                    }
+                                );
+                            }
+                        );
+                    }
                 }
             );
         };
@@ -342,9 +422,11 @@ app.post("/api/chat", async (req, res) => {
                 }
             );
         } else {
-            const title = trimmedPrompt.length > 40
+            const baseTitle = trimmedPrompt.length > 40
                 ? `${trimmedPrompt.slice(0, 40)}...`
                 : trimmedPrompt;
+
+            const title = useThreeLLM ? `[3LLM] ${baseTitle}` : baseTitle;
 
             db.run(
                 "INSERT INTO conversations (user_id, title) VALUES (?, ?)",
@@ -362,7 +444,7 @@ app.post("/api/chat", async (req, res) => {
     } catch (error) {
         console.error("Ollama connection error:", error.message);
         return res.status(500).json({
-            message: "Could not connect to local Ollama."
+            message: error.message || "Could not connect to local Ollama."
         });
     }
 });

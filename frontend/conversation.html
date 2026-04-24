@@ -5,10 +5,11 @@
     <title>Conversation</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-    <header>
+<body class="chat-page conversation-page">
+    <header class="site-header">
         <div class="logo">
-            Software Engineering Project - Group 11
+            <span class="logo-title">Software Engineering Project - Group 11</span>
+            <span class="logo-subtitle">Individual Iteration by Yang Chen</span>
         </div>
 
         <div class="nav-buttons">
@@ -21,16 +22,31 @@
         </div>
     </header>
 
-    <main>
-        <section class="hero">
-            <button onclick="window.location.href='history.html'">&lt; Back</button>
-            <h1 id="conversationTitle">Chat</h1>
+    <main class="chat-main">
+        <section class="chat-layout">
+            <div class="page-topbar">
+                <button class="secondary-action" onclick="window.location.href='history.html'">&lt; Back</button>
+                <div class="page-title-group">
+                    <h1 id="conversationTitle">Chat</h1>
+                </div>
+            </div>
 
             <div id="chatBox"></div>
 
-            <div class="search-container">
-                <input type="text" id="promptInput" placeholder="Ask me anything...">
-                <button onclick="sendPrompt()">ASK</button>
+            <div class="composer-panel">
+                <div class="search-container">
+                    <input type="text" id="promptInput" placeholder="Ask me anything...">
+                    <button onclick="sendPrompt()">ASK</button>
+                </div>
+
+                <div class="composer-footer">
+                    <div class="three-llm-option">
+                         <label>
+                            <input type="checkbox" id="threeLLMCheckbox">
+                            Have 3 LLMs respond
+                        </label>
+                    </div>
+                </div>
             </div>
         </section>
     </main>

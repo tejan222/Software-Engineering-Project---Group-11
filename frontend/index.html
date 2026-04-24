@@ -1,71 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-
-    <!-- Title that appears in browser tab -->
-    <title>
-        Software Engineering Project - Group 11
-    </title>
-
-    <!-- Link to CSS file-->
+    <title>Software Engineering Project - Group 11</title>
     <link rel="stylesheet" href="css/styles.css">
-
 </head>
-
-<body>
-    <!-- Everything User sees goes inside body -->
-
-    <header>
-        <!-- Top of page section -->
+<body class="chat-page home-page landing-page">
+    <header class="site-header">
         <div class="logo">
-            Software Engineering Project - Group 11
+            <span class="logo-title">Software Engineering Project - Group 11</span>
+            <span class="logo-subtitle">Individual Iteration by Yang Chen</span>
         </div>
 
         <div class="nav-buttons">
-            <!-- Navigation buttons -->
-            <!-- LOGIN -->
-            <button id="loginButton" onclick="window.location.href = 'login.html'">
+            <button id="loginButton" onclick="window.location.href='login.html'">
                 Login
             </button>
 
-            <!-- SIGN UP -->
-            <button id="signupButton" onclick="window.location.href = 'signup.html'">
+            <button id="signupButton" onclick="window.location.href='signup.html'">
                 Sign Up
             </button>
 
-            <!--    CHAT HISTORY -->
-            <button id="historyButton" onclick="window.location.href = 'history.html'" style="display: none;">
+            <button id="historyButton" onclick="window.location.href='history.html'" style="display: none;">
                 Conversation History
             </button>
 
-            <!-- LOGOUT -->
             <button id="logoutButton" onclick="logoutUser()" style="display: none;">
                 Logout
             </button>
         </div>
     </header>
 
-    <main>
-        <!-- Main content area -->
-        <section class="hero">
-            <!-- Main comment area of page -->
-            <h1> Welcome! Ask me anything! </h1>
-            <p> This is Group 11 Software Engineering Project </p>
-            <p id="authStatus">Checking login status...</p>
+    <main class="landing-main">
+        <section class="landing-shell">
+            <div class="landing-copy">
+                <div class="landing-kicker">Local LLM Chat Experience</div>
+                <h1>Welcome! Ask me anything!</h1>
+                <p class="landing-description">
+                    This is Group 11's Software Engineering Project. Start a new chat,
+                    compare model responses, and revisit your saved conversation history.
+                </p>
+                <p id="authStatus">Checking login status...</p>
 
-            <div class="new-chat-container">
-                <button onclick="startNewChat()">
-                    New Chat
-                </button>
+                <div class="landing-actions">
+                    <button class="landing-primary-action" onclick="startNewChat()">
+                        Start New Chat
+                    </button>
+                    <button
+                        id="landingHistoryButton"
+                        class="secondary-action"
+                        onclick="window.location.href='history.html'"
+                        style="display: none;"
+                    >
+                        View History
+                    </button>
+                </div>
+            </div>
+
+            <div class="landing-mini-grid">
+                <article class="landing-mini-card">
+                    <span class="landing-mini-title">Start Fast</span>
+                    <p>Start a chat here in one click, then keep the full conversation going on the main chat page.</p>
+                </article>
+
+                <article class="landing-mini-card landing-mini-accent">
+                    <span class="landing-mini-title">3-LLM Mode</span>
+                    <p>Compare multiple model responses side by side on the chat page.</p>
+                </article>
+
+                <article class="landing-mini-card">
+                    <span class="landing-mini-title">History</span>
+                    <p>Reopen saved chats later and search previous prompts from history.</p>
+                </article>
             </div>
         </section>
     </main>
 
-    <!-- Link to JavaScript file -->
     <script src="js/app.js"></script>
-
 </body>
-
 </html>

@@ -5,10 +5,11 @@
     <title>Conversation History</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-    <header>
+<body class="chat-page history-page">
+    <header class="site-header">
         <div class="logo">
-            Software Engineering Project - Group 11
+            <span class="logo-title">Software Engineering Project - Group 11</span>
+            <span class="logo-subtitle">Individual Iteration by Yang Chen</span>
         </div>
 
         <div class="nav-buttons">
@@ -21,21 +22,46 @@
         </div>
     </header>
 
-    <main>
-        <section class="hero">
-            <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
-                &lt; Back
-            </button>
-            <h1>Conversation History</h1>
+    <main class="history-main">
+        <section class="history-layout">
+            <div class="history-hero">
+                <div class="page-title-group">
+                    <h1>Conversation History</h1>
+                    <p>Browse previous chats, search your questions, or focus on 3-LLM conversations.</p>
+                </div>
 
-            <div class="search-container">
-                <input type="text" id="historySearchInput" placeholder="Search conversations...">
-                <button onclick="searchHistory()">Search</button>
+                <div class="history-hero-actions">
+                    <button
+                        id="historyBackButton"
+                        class="secondary-action"
+                        onclick="resetHistory()"
+                        style="display: none;"
+                    >
+                        Reset Filters
+                    </button>
+                    <button class="history-new-chat-button" onclick="startNewChat()">
+                        New Chat
+                    </button>
+                </div>
             </div>
 
-            <div id="historyList"></div>
+            <div class="history-controls-card">
+                <div class="search-container history-search">
+                    <input type="text" id="historySearchInput" placeholder="Search conversations...">
+                    <button onclick="searchHistory()">Search</button>
+                </div>
 
-            <button onclick="startNewChat()">New Chat</button>
+                <div class="history-filter-row">
+                    <label class="history-filter-toggle">
+                        <input type="checkbox" id="threeLLMHistoryFilter" onchange="applyHistoryFilters()">
+                        <span>Show only 3-LLM conversations</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="history-list-shell">
+                <div id="historyList"></div>
+            </div>
         </section>
     </main>
 
