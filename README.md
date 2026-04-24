@@ -118,3 +118,7 @@ A web application that allows users to query multiple Large Language Models (LLM
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # Or download from https://ollama.ai/download
+
+
+Important Things
+the "authValidation.test.js" and "llmService.test.js" should be in the "tests" folder, I dont know how to create the folder in GitHub, so that I just upload these two files in the branch.
