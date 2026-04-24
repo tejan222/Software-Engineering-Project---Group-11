@@ -2,34 +2,98 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
 }
 
 /* Header bar at the top */
 header {
-    /* Makes items appear in a row */
     display: flex;
     justify-content: space-between;
     padding: 15px 30px;
     background: #222;
-    /* background-color: #31475e; */
     color: white;
 }
 
 .hero {
     text-align: center;
-    margin-top: 120px;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+/* LLM Selector Styles */
+.llm-selector {
+    width: 80%;
+    margin: 20px auto;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.llm-selector h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+#llmCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+#llmCheckboxes label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+    background: #e8e8e8;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+
+#llmCheckboxes label:hover {
+    background: #d1e7ff;
+}
+
+#llmCheckboxes input[type="checkbox"] {
+    margin: 0;
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.mode-btn {
+    padding: 8px 20px;
+    border: 1px solid #4CAF50;
+    background: white;
+    color: #4CAF50;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.mode-btn.active {
+    background: #4CAF50;
+    color: white;
 }
 
 /* Chat Box Edits */
 #chatBox {
-    width: 60%;
+    width: 80%;
     margin: 30px auto;
     padding: 15px;
-    min-height: 200px;
+    min-height: 300px;
+    max-height: 500px;
+    overflow-y: auto;
     border: 1px solid #ccc;
     border-radius: 8px;
     background: #f9f9f9;
-
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -47,27 +111,40 @@ header {
     align-self: flex-end;
 }
 
-.ai-message {
+.llm-message {
     background: #e8e8e8;
     align-self: flex-start;
+    margin-left: 20px;
+}
+
+.llm-header {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.multi-llm-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
 }
 
 /* Sign Up and Login Button Edits */
 .nav-buttons {
-    /* Makes Login and Signup buttons appear side by side */
     display: flex;
     gap: 10px;
     align-items: flex-start;
 }
 
 .nav-buttons button {
-    /* Styling button */
     padding: 5px 15px;
     cursor: pointer;
     border-radius: 5px;
     background: #4CAF50;
     color: white;
     font-weight: bold;
+    border: none;
 }
 
 .nav-buttons button:hover {
@@ -76,7 +153,7 @@ header {
 
 /* Search container styling */
 .search-container {
-    width: 60%;
+    width: 80%;
     margin: 20px auto;
     display: flex;
     gap: 10px;
@@ -85,14 +162,19 @@ header {
 .search-container input {
     flex: 1;
     padding: 10px;
-    width: 300px;
     font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
 .search-container button {
-    padding: 10px 15px;
+    padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
 
 .new-chat-container {
@@ -105,6 +187,38 @@ header {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+/* History page styles */
+.history-item {
+    padding: 10px;
+    margin: 10px auto;
+    width: 60%;
+    background: white;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.history-item a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+.history-item a:hover {
+    color: #4CAF50;
+}
+
+.history-item span {
+    color: #666;
+    font-size: 12px;
 }
 
 /* signup.html style edits */
@@ -112,6 +226,10 @@ header {
     width: 350px;
     margin: 50px auto;
     text-align: left;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .signup-box h2 {
@@ -130,11 +248,18 @@ header {
     padding: 10px;
     margin-bottom: 15px;
     font-size: 16px;
-    font-weight: bold;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.signup-box button {
+    width: 100%;
+    padding: 10px;
+    background: #4CAF50;
+    color: white;
     border: none;
     border-radius: 5px;
-    background-color: #dfdada;
-    color: black;
+    font-size: 16px;
     cursor: pointer;
 }
 
