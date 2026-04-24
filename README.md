@@ -1,62 +1,124 @@
-# Individual Iteration: 3-LLM Chat Features
+# Software Engineering Course Project Individual Iteration - Group 11
+This is the GitHub Repository for Group 11's individual iteration of the Software Engineering (14:332:452) course project.  
+This individual iteration was completed by Yang Chen.
 
-This repository contains my individual iteration work for the Software Engineering course project. The project is a web app that lets users chat with a local LLM, save conversations, view conversation history, and search past chats.
+This project extends the existing web-based LLM chat application.  
+Users can already register, log in, log out, save conversation history, view saved history, and search previous conversations.  
+In this individual iteration, the project adds optional 3-LLM responses, best-answer highlighting, and filtering for 3-LLM conversations.
 
-## Main Features in This Iteration
-
-### 1. Optional 3-LLM Response Mode
-Users can enable a checkbox labeled **"Have 3 LLMs respond"** on the chat page.  
-When enabled, the frontend sends a `useThreeLLM` flag to the backend and the system returns three LLM responses instead of one.
-
-### 2. Best Answer Highlighting
-When three responses are generated, one response is selected as the best answer and highlighted in the chat interface.  
-The backend includes helper logic for response selection and fallback handling.
-
-### 3. 3-LLM Conversation Identification and Filtering
-Conversations created in 3-LLM mode are marked with the prefix **[3LLM]** in their titles.  
-The history page also includes a filter option so users can view only 3-LLM conversations.
-
-## Additional Improvements
-- Homepage updated as a landing page instead of a full chat page
-- Dedicated conversation page for full chat interaction
-- Improved empty-state text and page layout
-- UI updates for readability and workflow clarity
+## Features Implemented in This Individual Iteration
+- Optional "Have 3 LLMs respond" mode
+- Three LLM responses shown for a single user prompt
+- Best answer automatically selected and highlighted
+- 3-LLM conversations marked with `[3LLM]` in history
+- History filter for showing only 3-LLM conversations
+- Jasmine unit tests for 3-LLM helper logic
+- Cucumber and Puppeteer acceptance tests for the 3-LLM workflow
 
 ## Project Structure
+backend/
+    server.js                  Express backend server
+    llmHelpers.js              Helper logic for 3-LLM mode and best-answer selection
+    authValidation.js          Input validation helpers
+    authHelpers.js             Authentication helper functions
+    spec/
+        authValidationSpec.js
+        authHelpersSpec.js
+        llmHelpersSpec.js
+    package.json
 
-- `backend/` - server logic and backend helper functions
-- `frontend/` - HTML, CSS, and JavaScript for the user interface
-- `features/` - Cucumber acceptance tests and step definitions
+frontend/
+    index.html                 Landing page
+    login.html                 Login page
+    signup.html                Sign-up page
+    conversation.html          Main chat page
+    history.html               Conversation history page
+    js/app.js                  Frontend logic
+    css/styles.css             Styling
 
-## Tests
+features/
+    04_saveHist.feature
+    05_searchHist.feature
+    06_talktoLLM.feature
+    07_threeLLM.feature
+    steps_definitions/
+        steps.js
+        threeLLMSteps.js
 
-### Unit Tests
-Jasmine is used for backend unit testing.  
-This iteration adds tests for the 3-LLM helper logic, including:
-- model selection
-- judge prompt construction
-- judge response parsing
-- fallback best-answer selection
+## Requirements
+- Node.js (v18+ recommended)
+- npm
+- A modern web browser
+- VS Code Live Server (recommended for frontend)
+- Ollama running locally
 
-Main unit test file:
-- `backend/spec/llmHelpersSpec.js`
+## Installation
+1. Clone the repository:
+git clone <repo-url>
 
-### Acceptance Tests
-Cucumber and Puppeteer are used for browser-based acceptance testing.  
-This iteration adds scenarios for:
-- enabling 3-LLM mode
-- viewing three responses with one highlighted best answer
-- reopening saved 3-LLM conversations
-- filtering history to show only 3-LLM conversations
+2. Install dependencies from the project root:
+npm install
 
-Main acceptance test files:
-- `features/07_threeLLM.feature`
-- `features/steps_definitions/threeLLMSteps.js`
-
-## How to Run the Project
-
-### Backend
-From the project root:
-```bash
+3. Navigate to the backend directory:
 cd backend
+
+4. Install backend dependencies if needed:
+npm install
+
+## Running the Backend Server
+From the backend directory:
 node server.js
+
+The server will start at:
+http://localhost:3000
+
+## Running the Frontend
+Open the frontend files using a local server.
+
+If using VS Code Live Server:
+1. Open the project in VS Code
+2. Click Manage in the bottom right corner of VS Code, then Settings
+3. Search "live server host"
+4. Change Live Server > Settings: Host to `localhost`
+5. Right-click `frontend/index.html`
+6. Click **Open with Live Server**
+
+The frontend will run at:
+http://localhost:5500/frontend/index.html
+
+Use `localhost` consistently for both frontend and backend.
+
+## Running Unit Tests
+From the backend directory:
+npx.cmd jasmine
+
+This runs the Jasmine test suites, including:
+- authValidationSpec.js
+- authHelpersSpec.js
+- llmHelpersSpec.js
+
+## Running Acceptance Tests
+We are using Cucumber and Puppeteer to simulate real user interactions.
+
+Before running the tests:
+- Ensure that the backend server is running at `http://localhost:3000`
+- Ensure the frontend is running via Live Server at `http://localhost:5500`
+
+From the project root directory run:
+npx.cmd cucumber-js features/07_threeLLM.feature
+
+This runs the acceptance tests for:
+- enabling 3-LLM mode
+- displaying three responses
+- highlighting the best answer
+- filtering 3-LLM conversations in history
+
+## Notes
+- The project continues using the existing `conversations` and `messages` tables
+- No database schema change was required for identifying 3-LLM conversations
+- 3-LLM conversations are identified through the `[3LLM]` title prefix
+- Best-answer selection uses backend helper logic with judge-model support and fallback handling
+
+## Author
+Yang Chen
+
