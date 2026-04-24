@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Conversation History</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <header>
         <div class="logo">
@@ -31,6 +33,13 @@
             <div class="search-container">
                 <input type="text" id="historySearchInput" placeholder="Search conversations...">
                 <button onclick="searchHistory()">Search</button>
+
+                <!-- LLM FILTER BUTTON -->
+                <select id="llmFilter" onchange="filterHistoryByLLMs()">
+                    <option value="">ALL LLMS</option>
+                    <option value="1">1 LLM</option>
+                    <option value="3">3 LLMs</option>
+                </select>
             </div>
 
             <div id="historyList"></div>
@@ -41,4 +50,5 @@
 
     <script src="js/app.js"></script>
 </body>
+
 </html>

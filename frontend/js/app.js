@@ -1,5 +1,6 @@
 console.log("JS loaded!")
 let currentConversationId = null;
+let longestResponse = null;
 
 // SIGN UP
 async function signupUser(event) {
@@ -89,6 +90,7 @@ async function logoutUser() {
 
 // SHOW LOGIN STATUS ON INDEX PAGE
 async function checkLoginStatus() {
+    console.log("checkLoginStatus running");
     const statusElement = document.getElementById("authStatus");
     const logoutButton = document.getElementById("logoutButton");
     const loginButton = document.getElementById("loginButton");
@@ -148,6 +150,8 @@ async function checkLoginStatus() {
 async function sendPrompt() {
     const promptInput = document.getElementById("promptInput");
     const chatBox = document.getElementById("chatBox");
+    const numLLMsSelect = document.getElementById("numLLMs");
+    const numLLMs = numLLMsSelect ? Number(numLLMsSelect.value) : 1;
 
     if (!promptInput || !chatBox) return;
 
@@ -186,11 +190,15 @@ async function sendPrompt() {
             credentials: "include",
             body: JSON.stringify({
                 prompt,
-                conversationId: currentConversationId
+                conversationId: currentConversationId,
+                numLLMs
             })
         });
 
         const data = await response.json();
+        longestResponse = data.longestResponse;
+        console.log("ALL REPLIES:", data.replies);
+        console.log("LONGEST:", data.longestResponse);
 
         if (data.conversationId) {
             currentConversationId = data.conversationId;
@@ -204,16 +212,53 @@ async function sendPrompt() {
         }
 
         // Final response
-        loadingElement.innerHTML = `<strong>LLM:</strong> ${data.reply}`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        loadingElement.innerHTML = data.replies.map((r) => {
+            const isLongest =
+                data.longestResponse &&
+                r.model === data.longestResponse.model &&
+                r.content === data.longestResponse.content;
 
+            return `
+                <div style="
+                    background-color: ${isLongest ? '#ffe6e6' : 'transparent'};
+                    border: ${isLongest ? '2px solid red' : 'none'};
+                    padding: 4px;
+                    border-radius: 5px;
+                ">
+                    <strong>${r.model}:</strong> ${r.content}
+                </div>
+            `;
+        })
+            .join("<br><br>");
+
+        /*.map(r => {
+            const isLongest =
+                longestResponse &&
+                r.model === longestResponse.model &&
+                r.content === longestResponse.content;
+
+            return `
+            <div style="
+                background-color: ${isLongest ? '#ffe6e6' : 'transparent'};
+                border: ${isLongest ? '2px solid red' : 'none'};
+                padding: 4px;
+                border-radius: 5px;
+            ">
+                <strong>${r.model}:</strong> ${r.content}
+            </div>
+        `;
+        })
+        .join("<br><br>");*/
+
+        chatBox.scrollTop = chatBox.scrollHeight;
         promptInput.value = "";
+
     } catch (error) {
-        if (interval){
+        if (interval) {
             clearInterval(interval);
         }
         console.error("Chat error:", error);
-        if (loadingElement){
+        if (loadingElement) {
             loadingElement.innerHTML = `<strong>LLM:</strong> Error: Could not connect.`;
         }
     }
@@ -387,6 +432,56 @@ function resetHistory() {
 
 document.addEventListener("DOMContentLoaded", () => {
     checkLoginStatus();
-    loadHistory();
-    loadConversation();
+
+    if (document.getElementById("historyList")) {
+        loadHistory();
+    }
+
+    if (document.getElementById("chatBox")) {
+        loadConversation();
+    }
 });
+
+// Filter History By Number of LLM Responses
+async function filterHistoryByLLMs() {
+    const numLLMs = document.getElementById("llmFilter").value;
+    let url = "http://localhost:3000/api/history";
+
+    if (numLLMs) {
+        url += `?numLLMs=${numLLMs}`;
+    }
+
+    try {
+        const res = await fetch(url, {
+            method: "GET",
+            credentials: "include"
+        });
+
+        const data = await res.json();
+
+        const historyList = document.getElementById("historyList");
+
+        if (!res.ok) {
+            historyList.innerHTML = `<p>${data.message || "Error loading history."}</p>`;
+            return;
+        }
+
+        if (!data.conversations.length) {
+            historyList.innerHTML = "<p> No conversations found.</p>";
+            return;
+        }
+
+        historyList.innerHTML = data.conversations.map(conversation => `
+            <div class="history-item">
+                <a href="conversation.html?id=${conversation.id}">
+                    ${conversation.title}
+                </a>
+                <span>${formatDate(conversation.updated_at)}</span>
+            </div>
+        `).join("");
+    }
+
+    catch (error) {
+        console.error("Filter error:", error);
+    }
+}

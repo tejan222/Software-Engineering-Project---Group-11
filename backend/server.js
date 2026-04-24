@@ -1,3 +1,4 @@
+const fetch = require("node-fetch");
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
@@ -6,7 +7,9 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { normalizeEmail, validateSignupInput } = require("./authValidation");
 const OLLAMA_URL = "http://localhost:11434/api/chat";
-const OLLAMA_MODEL = "qwen2.5:7b";
+const MODELS = ["qwen2.5:7b", "mistral:latest", "gemma:7b"];
+// const MODELS = ["mistral"];
+
 // const fetch = require("node-fetch");
 const {
     normalizeLoginInput,
@@ -48,6 +51,14 @@ db.run(`
     )
 `);
 
+// Modify Conversations Table to store numLLMs as well
+db.run(`ALTER TABLE conversations ADD COLUMN num_llms INTEGER DEFAULT 1`,
+    (err) => {
+        if (err) {
+            console.log("num_llms column already exists (safe to ignore)");
+        }
+    });
+
 // Create messages table if it does not exist
 db.run(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -67,7 +78,7 @@ db.run(`
 app.use(express.json());
 
 app.use(cors({
-    origin: "http://localhost:5500",
+    origin: "http://localhost:8080",
     credentials: true
 }));
 
@@ -77,6 +88,21 @@ app.use(session({
     saveUninitialized: false,
     cookie: { secure: false }
 }));
+
+app.post("/api/test-login", (req, res) => {
+    req.session.user = {
+        id: 1,
+        email: "test@test.com"
+    };
+
+    res.json({ message: "Test login successful" });
+});
+
+// Test Session Bypass
+// Added this to ensure that when /api/chat require authentication:
+// this middleware will login for the jasmine unit tests
+//if (process.env.NODE_ENV === "test") {
+//}
 
 // Test route
 app.get("/", (req, res) => {
@@ -248,7 +274,8 @@ app.post("/api/chat", async (req, res) => {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    const { prompt, conversationId } = req.body;
+    // const { prompt, conversationId } = req.body;
+    const { prompt, conversationId, numLLMs } = req.body;
 
     if (!prompt || !prompt.trim()) {
         return res.status(400).json({ message: "Prompt is required." });
@@ -258,66 +285,149 @@ app.post("/api/chat", async (req, res) => {
     const trimmedPrompt = prompt.trim();
 
     try {
-        const ollamaResponse = await fetch(OLLAMA_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: OLLAMA_MODEL,
-                messages: [
-                    {
-                        role: "user",
-                        content: trimmedPrompt
-                    }
-                ],
-                stream: false
-            })
-        });
+        const selectedModels = MODELS.slice(0, numLLMs || 1);
 
-        if (!ollamaResponse.ok) {
-            const errorText = await ollamaResponse.text();
-            console.error("Ollama API error:", errorText);
-            return res.status(502).json({ message: "Ollama request failed." });
+        if (process.env.NODE_ENV === "test") {
+            const fakeResponses = selectedModels.map(model => ({
+                model,
+                content: `mock response from ${model}`
+            }));
+
+            const longest = fakeResponses.reduce((max, curr) => {
+                return curr.content.length > max.content.length ? curr : max;
+            }, fakeResponses[0]);
+
+            const title =
+                trimmedPrompt.length > 40
+                    ? trimmedPrompt.slice(0, 40) + "..."
+                    : trimmedPrompt;
+
+            db.run(
+                "INSERT INTO conversations (user_id, title, num_llms) VALUES (?, ?, ?)",
+                [userId, title, selectedModels.length],
+                function (err) {
+                    if (err) {
+                        return res.status(500).json({ message: "Could not create conversation." });
+                    }
+
+                    const conversationId = this.lastID;
+
+                    db.run(
+                        "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                        [conversationId, "user", trimmedPrompt]
+                    );
+
+                    fakeResponses.forEach(r => {
+                        db.run(
+                            "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                            [conversationId, r.model, r.content]
+                        );
+                    });
+
+                    return res.json({
+                        message: "Chat successful.",
+                        replies: fakeResponses,
+                        longestResponse: longest,
+                        conversationId
+                    });
+
+                }
+            );
+
+            return;
         }
 
-        const ollamaData = await ollamaResponse.json();
-        const reply = ollamaData.message?.content || "";
+        // Test-mode bypass
+        // Replaces AI calls with mock AI calls - that way jasmine test
+        // Does not need to rely on Ollama server being on
+        /*if (process.env.NODE_ENV === "test") {
+            const fakeResponses = selectedModels.map(model => ({
+                model,
+                content: `mock response from ${model}`
+            }));
 
+            return res.json({
+                message: "Chat successful.",
+                replies: fakeResponses,
+                conversationId: 1
+            });
+        }*/
+        ///
+
+        const llmResponses = await Promise.all(
+            selectedModels.map(async (model) => {
+                const ollamaResponse = await fetch(OLLAMA_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model,
+                        messages: [{ role: "user", content: trimmedPrompt }],
+                        stream: false
+                    })
+                });
+
+                if (!ollamaResponse.ok) {
+                    console.error(`Error from ${model}`);
+                    return { model, content: "Error from model" };
+                }
+
+                const data = await ollamaResponse.json();
+
+                return {
+                    model,
+                    content: data.message?.content || "No response"
+                };
+
+            })
+        );
+
+        const replies = llmResponses.map(r => ({
+            model: r.model,
+            content: r.content
+        }));
+
+        const longest = replies.reduce((max, curr) => {
+            return curr.content.length > max.content.length ? curr : max;
+        }, replies[0]);
+
+        // Save Messages function
         const saveMessages = (activeConversationId) => {
             db.run(
                 "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
                 [activeConversationId, "user", trimmedPrompt],
-                function (userMsgErr) {
-                    if (userMsgErr) {
-                        console.error("User message insert error:", userMsgErr.message);
-                        return res.status(500).json({ message: "Could not save user message." });
+                function (err) {
+                    if (err) {
+                        console.error("User message error:", err.message);
+                        return res.status(500).json({ message: "Failed to save user message." });
+
                     }
 
+                    llmResponses.forEach(r => {
+                        db.run(
+                            "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
+                            [activeConversationId, r.model, r.content],
+                            (err2) => {
+                                if (err2) {
+                                    console.error("LLM save error:", err2.message);
+                                }
+                            }
+                        );
+                    });
+
                     db.run(
-                        "INSERT INTO messages (conversation_id, sender, content) VALUES (?, ?, ?)",
-                        [activeConversationId, "llm", reply],
-                        function (llmMsgErr) {
-                            if (llmMsgErr) {
-                                console.error("LLM message insert error:", llmMsgErr.message);
-                                return res.status(500).json({ message: "Could not save LLM message." });
+                        "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        [activeConversationId],
+                        (err3) => {
+                            if (err3) {
+                                console.error("Update error:", err3.message);
                             }
 
-                            db.run(
-                                "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                                [activeConversationId],
-                                function (updateErr) {
-                                    if (updateErr) {
-                                        console.error("Conversation update error:", updateErr.message);
-                                    }
-
-                                    return res.json({
-                                        message: "Chat successful.",
-                                        reply,
-                                        conversationId: activeConversationId
-                                    });
-                                }
-                            );
+                            return res.json({
+                                message: "Chat successful.",
+                                replies,
+                                longestResponse: longest,
+                                conversationId: activeConversationId
+                            });
                         }
                     );
                 }
@@ -328,33 +438,39 @@ app.post("/api/chat", async (req, res) => {
             db.get(
                 "SELECT id FROM conversations WHERE id = ? AND user_id = ?",
                 [conversationId, userId],
-                (findErr, row) => {
-                    if (findErr) {
-                        console.error("Conversation lookup error:", findErr.message);
+                (err, row) => {
+                    if (err) {
                         return res.status(500).json({ message: "Database error." });
                     }
-
                     if (!row) {
                         return res.status(404).json({ message: "Conversation not found." });
                     }
 
+                    db.run(
+                        "UPDATE conversations SET num_llms = ? WHERE id = ?",
+                        [selectedModels.length, conversationId],
+                        (err) => {
+                            if (err) console.error("num_llms update error:", err);
+                        }
+                    );
+
                     saveMessages(conversationId);
                 }
             );
-        } else {
-            const title = trimmedPrompt.length > 40
-                ? `${trimmedPrompt.slice(0, 40)}...`
-                : trimmedPrompt;
+        }
+        else {
+            const title =
+                trimmedPrompt.length > 40
+                    ? trimmedPrompt.slice(0, 40) + "..."
+                    : trimmedPrompt;
 
             db.run(
-                "INSERT INTO conversations (user_id, title) VALUES (?, ?)",
-                [userId, title],
-                function (convErr) {
-                    if (convErr) {
-                        console.error("Conversation insert error:", convErr.message);
+                "INSERT INTO conversations (user_id, title, num_llms) VALUES (?, ?, ?)",
+                [userId, title, selectedModels.length],
+                function (err) {
+                    if (err) {
                         return res.status(500).json({ message: "Could not create conversation." });
                     }
-
                     saveMessages(this.lastID);
                 }
             );
@@ -372,21 +488,31 @@ app.get("/api/history", (req, res) => {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    db.all(
-        `SELECT id, title, created_at, updated_at
-         FROM conversations
-         WHERE user_id = ?
-         ORDER BY updated_at DESC`,
-        [req.session.user.id],
-        (err, rows) => {
-            if (err) {
-                console.error("History fetch error:", err.message);
-                return res.status(500).json({ message: "Database error." });
-            }
+    const numLLMs = req.query.numLLMs ? parseInt(req.query.numLLMs) : null;
 
-            return res.json({ conversations: rows });
+    let query = `
+        SELECT id, title, created_at, updated_at, num_llms
+        FROM conversations
+        WHERE user_id = ?
+    `;
+
+    const params = [req.session.user.id];
+
+    if (numLLMs !== null && !isNaN(numLLMs)) {
+        query += " AND num_llms = ?";
+        params.push(numLLMs);
+    }
+
+    query += " ORDER BY updated_at DESC";
+
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            console.error("History fetch error:", err.message);
+            return res.status(500).json({ message: "Database error." });
         }
-    );
+
+        return res.json({ conversations: rows });
+    });
 });
 
 app.get("/api/history/search", (req, res) => {
@@ -462,6 +588,14 @@ app.get("/api/history/:id", (req, res) => {
     );
 });
 
-app.listen(PORT, () => {
+/*app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-});
+});*/
+
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = { app, db };
