@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Conversation</title>
+    <title>Conversation - Multi-LLM Chat</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
         <div class="logo">
-            Software Engineering Project - Group 11
+            Software Engineering Project - Group 11 - Individual
         </div>
-
         <div class="nav-buttons">
             <button onclick="window.location.href='history.html'">
                 Conversation History
@@ -26,11 +25,23 @@
             <button onclick="window.location.href='history.html'">&lt; Back</button>
             <h1 id="conversationTitle">Chat</h1>
 
+            <div class="llm-selector">
+                <h3>Select LLMs to Query:</h3>
+                <div id="llmCheckboxes">
+                    <!-- Dynamic LLM checkboxes will be loaded here -->
+                </div>
+
+                <div class="mode-buttons">
+                    <button id="singleModeBtn" class="mode-btn active">Single LLM</button>
+                    <button id="multiModeBtn" class="mode-btn">Multi-LLM (Parallel)</button>
+                </div>
+            </div>
+
             <div id="chatBox"></div>
 
             <div class="search-container">
                 <input type="text" id="promptInput" placeholder="Ask me anything...">
-                <button onclick="sendPrompt()">ASK</button>
+                <button id="sendBtn" onclick="sendPrompt()">ASK</button>
             </div>
         </section>
     </main>

@@ -1,60 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-
-    <!-- Title that appears in browser tab -->
-    <title>
-        Software Engineering Project - Group 11
-    </title>
-
-    <!-- Link to CSS file-->
+    <title>Software Engineering Project - Group 11 - Individual</title>
     <link rel="stylesheet" href="css/styles.css">
-
 </head>
-
 <body>
-    <!-- Everything User sees goes inside body -->
-
     <header>
-        <!-- Top of page section -->
         <div class="logo">
-            Software Engineering Project - Group 11
+            Software Engineering Project - Group 11 - Individual
         </div>
-
         <div class="nav-buttons">
-            <!-- Navigation buttons -->
-            <!-- LOGIN -->
             <button id="loginButton" onclick="window.location.href = 'login.html'">
                 Login
             </button>
-
-            <!-- SIGN UP -->
             <button id="signupButton" onclick="window.location.href = 'signup.html'">
                 Sign Up
             </button>
-
-            <!--    CHAT HISTORY -->
             <button id="historyButton" onclick="window.location.href = 'history.html'" style="display: none;">
                 Conversation History
             </button>
-
-            <!-- LOGOUT -->
             <button id="logoutButton" onclick="logoutUser()" style="display: none;">
                 Logout
             </button>
         </div>
     </header>
-
     <main>
-        <!-- Main content area -->
         <section class="hero">
-            <!-- Main comment area of page -->
-            <h1> Welcome! Ask me anything! </h1>
-            <p> This is Group 11 Software Engineering Project </p>
+            <h1>Welcome! Ask multiple AI models!</h1>
+            <p>This is Group 11 Software Engineering Project</p>
+            <p>Supported LLMs: Qwen 2.5, Llama 3.2, Mistral 7B, Phi-3 Mini, DeepSeek r1</p>
             <p id="authStatus">Checking login status...</p>
-
             <div class="new-chat-container">
                 <button onclick="startNewChat()">
                     New Chat
@@ -62,10 +38,6 @@
             </div>
         </section>
     </main>
-
-    <!-- Link to JavaScript file -->
     <script src="js/app.js"></script>
-
 </body>
-
 </html>
