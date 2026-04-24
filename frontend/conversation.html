@@ -22,12 +22,27 @@
     </header>
 
     <main>
-        <section class="hero">
+        <!-- <section class="hero">
             <button onclick="window.location.href='history.html'">&lt; Back</button>
             <h1 id="conversationTitle">Chat</h1>
 
             <div id="chatBox"></div>
 
+            <div class="search-container">
+                <input type="text" id="promptInput" placeholder="Ask me anything...">
+                <button onclick="sendPrompt()">ASK</button>
+            </div>
+        </section> -->
+        <section class="hero">
+            <button onclick="window.location.href='history.html'">&lt; Back</button>
+            <h1 id="conversationTitle">New Chat</h1>
+            <div class="three-llm-toggle-row">
+                <label for="threeLLMToggle" class="three-llm-toggle-label">
+                    <input type="checkbox" id="threeLLMToggle">
+                    <span>Have 3 LLMs respond</span>
+                </label>
+            </div>
+            <div id="chatBox"></div>
             <div class="search-container">
                 <input type="text" id="promptInput" placeholder="Ask me anything...">
                 <button onclick="sendPrompt()">ASK</button>

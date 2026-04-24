@@ -22,6 +22,21 @@
     </header>
 
     <main>
+        <!-- <section class="hero">
+            <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
+                &lt; Back
+            </button>
+            <h1>Conversation History</h1>
+
+            <div class="search-container">
+                <input type="text" id="historySearchInput" placeholder="Search conversations...">
+                <button onclick="searchHistory()">Search</button>
+            </div>
+
+            <div id="historyList"></div>
+
+            <button onclick="startNewChat()">New Chat</button>
+        </section> -->
         <section class="hero">
             <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
                 &lt; Back
@@ -31,6 +46,13 @@
             <div class="search-container">
                 <input type="text" id="historySearchInput" placeholder="Search conversations...">
                 <button onclick="searchHistory()">Search</button>
+            </div>
+
+            <div class="three-llm-filter-row">
+                <label class="three-llm-filter-label">
+                    <input type="checkbox" id="threeLLMFilter" onchange="loadHistory()">
+                    <span>Filter by 3 LLM conversations</span>
+                </label>
             </div>
 
             <div id="historyList"></div>

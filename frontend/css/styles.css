@@ -141,3 +141,89 @@ header {
 .signup-box button:hover {
     background-color: #3d9140;
 }
+
+.llm-response-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    background-color: #f9f9f9;
+    text-align: left;
+}
+
+.best-response {
+    border: 2px solid gold;
+    background-color: #fff8cc;
+}
+
+.chat-turn {
+    margin-bottom: 20px;
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.user-turn {
+    margin-bottom: 10px;
+}
+
+.llm-turn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.llm-response-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    background-color: #f9f9f9;
+    text-align: left;
+}
+
+.best-response {
+    border: 2px solid gold;
+    background-color: #fff8cc;
+}
+
+input[type="checkbox"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.three-llm-toggle-row {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0 20px 0;
+}
+
+.three-llm-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.three-llm-toggle-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.three-llm-filter-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0 10px 0;
+}
+
+.three-llm-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px; /* smaller gap = checkbox closer to text */
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.three-llm-filter-label input[type="checkbox"] {
+    margin: 0;
+}

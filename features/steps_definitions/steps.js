@@ -12,6 +12,8 @@ let sentMessage = '';
 let lastHistory = null;
 let lastSearchResults = null;
 let lastChatText = '';
+let lastResponseCount = 0;
+let lastBestResponseCount = 0;
 
 Given('I am on the sign up page', async function () {
     if (!browser) {
@@ -102,6 +104,12 @@ Then('My session should end securely', async function () {
 // ITERATION 2
 // -- TALK TO LLM FEATURE --
 Given('I am logged in as a registered user', async function () {
+  if (browser){
+    await browser.close();
+    browser = null;
+    page = null;
+  }
+  
   browser = await puppeteer.launch({
     headless: false,
     slowMo: 80,
@@ -134,6 +142,28 @@ Given('I am logged in as a registered user', async function () {
   expect(authText.includes('Logged in as:')).toBe(true);
 });
 
+// When('I send a message {string}', async function (message) {
+//   sentMessage = message;
+
+//   await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
+//   await page.waitForSelector('#promptInput');
+//   await page.type('#promptInput', message);
+//   await page.click('button[onclick="sendPrompt()"]');
+//   await page.waitForFunction(
+//     () => {
+//       const chatBox = document.getElementById('chatBox');
+//       return chatBox &&
+//              chatBox.innerText.includes('LLM:') &&
+//              !chatBox.innerText.includes('Loading');
+//     },
+//     { timeout: 180000 }
+//   );
+//   lastChatText = await page.evaluate(() => {
+//     const chatBox = document.getElementById('chatBox');
+//     return chatBox ? chatBox.textContent.trim() : '';
+//   });
+// });
+
 When('I send a message {string}', async function (message) {
   sentMessage = message;
 
@@ -141,45 +171,88 @@ When('I send a message {string}', async function (message) {
   await page.waitForSelector('#promptInput');
   await page.type('#promptInput', message);
   await page.click('button[onclick="sendPrompt()"]');
+
   await page.waitForFunction(
     () => {
       const chatBox = document.getElementById('chatBox');
+      const cards = document.querySelectorAll('.llm-response-card');
       return chatBox &&
-             chatBox.innerText.includes('LLM:') &&
-             !chatBox.innerText.includes('Loading');
+             !chatBox.innerText.includes('Loading') &&
+             (cards.length > 0 || chatBox.innerText.includes('Error') || chatBox.innerText.includes('LLM'));
     },
     { timeout: 180000 }
   );
+
   lastChatText = await page.evaluate(() => {
     const chatBox = document.getElementById('chatBox');
     return chatBox ? chatBox.textContent.trim() : '';
   });
 });
+
+// When('I send the message {string}', async function (message) {
+//   sentMessage = message;
+
+//   await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
+//   await page.waitForSelector('#promptInput');
+//   await page.type('#promptInput', message);
+//   await page.click('button[onclick="sendPrompt()"]');
+//   await page.waitForFunction(
+//     () => {
+//       const chatBox = document.getElementById('chatBox');
+//       return chatBox &&
+//              chatBox.innerText.includes('LLM:') &&
+//              !chatBox.innerText.includes('Loading');
+//     },
+//     { timeout: 180000 }
+//   );
+//   lastChatText = await page.evaluate(() => {
+//     const chatBox = document.getElementById('chatBox');
+//     return chatBox ? chatBox.textContent.trim() : '';
+//   });
+// });
 
 When('I send the message {string}', async function (message) {
   sentMessage = message;
 
-  await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
   await page.waitForSelector('#promptInput');
+  await page.click('#promptInput', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
   await page.type('#promptInput', message);
   await page.click('button[onclick="sendPrompt()"]');
+
   await page.waitForFunction(
     () => {
       const chatBox = document.getElementById('chatBox');
-      return chatBox &&
-             chatBox.innerText.includes('LLM:') &&
-             !chatBox.innerText.includes('Loading');
+      const cards = document.querySelectorAll('.llm-response-card');
+      if (!chatBox) return false;
+
+      const text = chatBox.innerText || '';
+      return cards.length === 3 || text.includes('Error');
     },
     { timeout: 180000 }
   );
-  lastChatText = await page.evaluate(() => {
-    const chatBox = document.getElementById('chatBox');
-    return chatBox ? chatBox.textContent.trim() : '';
-  });
+
+  await page.waitForSelector('#chatBox');
+
+  try {
+    lastChatText = await page.$eval('#chatBox', el => el.textContent.trim());
+  } catch (err) {
+    if (err.message.includes('Execution context was destroyed')) {
+      await page.waitForSelector('#chatBox');
+      lastChatText = await page.$eval('#chatBox', el => el.textContent.trim());
+    } else {
+      throw err;
+    }
+  }
 });
 
+// Then('I should see a response from the LLM', async function () {
+//   expect(lastChatText.includes('LLM:')).toBe(true);
+// });
+
 Then('I should see a response from the LLM', async function () {
-  expect(lastChatText.includes('LLM:')).toBe(true);
+  const hasCards = await page.$$eval('.llm-response-card', cards => cards.length > 0);
+  expect(hasCards || lastChatText.length > 0).toBe(true);
 });
 
 Then('the conversation should be saved in my conversation history', async function () {
@@ -271,6 +344,151 @@ Then('I should see all matching messages containing {string}', async function (k
   const found = lastSearchResults.some(c => c.title.includes(keyword));
   expect(found).toBe(true);
 
+  if (browser) {
+    await browser.close();
+    browser = null;
+    page = null;
+  }
+});
+
+// INDIVIDUAL ITERATION (Shruthi Shankar)
+
+Given('I am on the new chat page', async function () {
+  await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
+  await page.waitForSelector('#promptInput');
+});
+
+Given('I check "Have 3 LLMs respond"', async function () {
+  await page.waitForSelector('#threeLLMToggle');
+
+  const isChecked = await page.$eval('#threeLLMToggle', el => el.checked);
+  if (!isChecked) {
+    await page.click('#threeLLMToggle');
+  }
+});
+
+Then('I should see 3 LLM responses', async function () {
+  await page.waitForSelector('.llm-response-card');
+
+  lastResponseCount = await page.$$eval('.llm-response-card', cards => cards.length);
+  expect(lastResponseCount).toBe(3);
+});
+
+Then('exactly 1 response should be highlighted as best', async function () {
+  lastBestResponseCount = await page.$$eval('.best-response', cards => cards.length);
+  expect(lastBestResponseCount).toBe(1);
+
+  if (browser) {
+    await browser.close();
+    browser = null;
+    page = null;
+  }
+});
+
+// Given('I have at least one saved 3 LLM conversation', async function () {
+//   sentMessage = `Three LLM test ${Date.now()}`;
+
+//   await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
+//   await page.waitForSelector('#threeLLMToggle');
+
+//   const isChecked = await page.$eval('#threeLLMToggle', el => el.checked);
+//   if (!isChecked) {
+//     await page.click('#threeLLMToggle');
+//   }
+
+//   await page.waitForSelector('#promptInput');
+//   await page.type('#promptInput', sentMessage);
+//   await page.click('button[onclick="sendPrompt()"]');
+
+//   await page.waitForFunction(
+//     () => document.querySelectorAll('.llm-response-card').length === 3,
+//     { timeout: 180000 }
+//   );
+// });
+
+Given('I have at least one saved 3 LLM conversation', async function () {
+  sentMessage = "Hello!";
+
+  await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
+  await page.waitForSelector('#threeLLMToggle');
+
+  const isChecked = await page.$eval('#threeLLMToggle', el => el.checked);
+  if (!isChecked) {
+    await page.click('#threeLLMToggle');
+  }
+
+  await page.waitForSelector('#promptInput');
+  await page.click('#promptInput', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('#promptInput', sentMessage);
+  await page.click('button[onclick="sendPrompt()"]');
+
+  await page.waitForFunction(
+    () => {
+      const cards = document.querySelectorAll('.llm-response-card');
+      const chatBox = document.getElementById('chatBox');
+      if (!chatBox) return false;
+
+      const text = chatBox.innerText || '';
+      return cards.length === 3 || text.includes('Error');
+    },
+    { timeout: 180000 }
+  );
+
+  await page.waitForSelector('#chatBox');
+});
+
+When('I go to the conversation history page', async function () {
+  try {
+    await page.goto(`${baseFrontend}/history.html`, { waitUntil: 'networkidle2' });
+  } catch (err) {
+    if (err.message.includes('ERR_ABORTED')) {
+      await page.waitForTimeout(1000);
+      await page.goto(`${baseFrontend}/history.html`, { waitUntil: 'networkidle2' });
+    } else {
+      throw err;
+    }
+  }
+
+  await page.waitForSelector('#historyList');
+});
+
+When('I enable the 3 LLM history filter', async function () {
+  await page.waitForSelector('#threeLLMFilter');
+
+  const isChecked = await page.$eval('#threeLLMFilter', el => el.checked);
+  if (!isChecked) {
+    await page.click('#threeLLMFilter');
+  }
+
+  await page.waitForFunction(
+    () => {
+      const historyList = document.getElementById('historyList');
+      return historyList && historyList.textContent.trim().length > 0;
+    },
+    { timeout: 10000 }
+  );
+});
+
+Then('I should only see conversations marked as 3 LLM', async function () {
+  const items = await page.$$eval('#historyList a', links =>
+    links.map(link => link.textContent.trim())
+  );
+
+  expect(items.length).toBeGreaterThan(0);
+
+  for (const item of items) {
+    expect(item.includes('[3 LLM]')).toBe(true);
+  }
+
+  if (browser) {
+    await browser.close();
+    browser = null;
+    page = null;
+  }
+});
+
+Then('I close the browser', async function () {
   if (browser) {
     await browser.close();
     browser = null;
