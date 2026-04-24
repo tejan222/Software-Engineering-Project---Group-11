@@ -1,4 +1,4 @@
-# Software Engineering Course Project Iteration 1 - Group 11
+# Software Engineering Course Project - Group 11 - Individual
 This is the GitHub Repository for Group 11's Iteration 1 of Software Engineering (14:332:452) course project.
 Group 11: Tejashree Nagaraj, Shruthi Shankar, Yeshaswini Karthik Babu, Chen Chen, Yang Chen, Anthony Daoud
 
@@ -6,7 +6,7 @@ This project implements a web-based authentication system for accessing an LLM s
 Users can create an account, log in, and log out through a web interface.  
 The backend is implemented using Node.js, Express, and SQLite, and authentication logic is tested using Jasmine.
 
-## Features Implemented (Iteration 1)
+## Features Implemented
 - User registration with email and password
 - Email format validation
 - Password validation (special character requirement)
@@ -33,6 +33,7 @@ frontend/
     js/app.js                  Frontend logic
     css/styles.css             Styling
 
+
 ## Requirements
 - Node.js (v18+ recommended)
 - npm
@@ -40,23 +41,36 @@ frontend/
 
 ## Installation
 1. Clone the repository:
-git clone <repo-url>
+git clone https://github.com/tejan222/Software-Engineering-Project---Group-11.git
+cd Software-Engineering-Project---Group-11
 
-2. Navigate to the backend directory:
+2. Install Dependencies:
+### Install backend dependencies
 cd backend
-
-3. Install dependencies:
 npm install
 
-## Running the Backend Server
-From the backend directory:
+### Return to root
+cd ..
+
+## Execution Instructions
+1. Start Ollama Service:
+ollama serve
+
+2. Start Backend Server:
+cd backend
 npm start
 
 The server will start at:
 http://localhost:3000
 
-## Running the Frontend
-Open the frontend files using a local server.
+3. Serve Frontend:
+py -m http.server 5500
+
+The frontend will run at:
+http://localhost:5500
+
+4. Access Application:
+Open browser and navigate to: http://localhost:5500
 
 If using VS Code Live Server:
 1. Open the project in VS Code
@@ -65,9 +79,6 @@ If using VS Code Live Server:
 4. Change Live Server > Settings: Host to `localhost`
 5. Right-click `index.html`
 6. Click **Open with Live Server**
-
-The frontend will run at:
-http://localhost:5500
 
 ## Running Unit Tests
 From the backend directory:
@@ -82,3 +93,28 @@ We are using Cucumber and Puppeteer to simulate real user interactions.
 - Ensure that the Backend Server is running at 'http://localhost:3000'
 - Ensure the Frontend is running via Live Server at 'http://localhost:5500'
 - From root directory run : npx cucumber-js
+
+# Multi-LLM Chat Application - Group 11 - Individual
+
+## Overview
+A web application that allows users to query multiple Large Language Models (LLMs) simultaneously and compare their responses.
+
+### Supported LLMs
+- Qwen 2.5 7B
+- Llama 3.2 3B
+- Mistral 7B
+- Phi-3 Mini
+- Deepseek-r1:14b 
+
+## Prerequisites
+
+### Required Software
+1. **Node.js** (v18 or higher)
+2. **Ollama** (for running LLMs locally)
+
+### Installing Ollama
+```bash
+# macOS/Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Or download from https://ollama.ai/download
