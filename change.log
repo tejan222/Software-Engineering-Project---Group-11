@@ -28,3 +28,29 @@ Feature 3: View & search conversation history. [PR https://github.com/tejan222/S
 - Added history page with search capabilities
 - Implemented E2E tests with Cucumber
 - Updated CSS for responsive design
+# Change Log - Individual Iteration
+
+## Feature 1: Optional 3-LLM Response Mode (Story Points: 4)
+- **Description**: Logged-in users can choose whether one LLM or three LLMs should respond to a prompt
+- **Implementation**: Added a "Have 3 LLMs respond" checkbox on the chat page and updated the frontend request flow to send the useThreeLLM flag to the backend
+- **PR Links**: [Individual iteration work on Yang-Chen branch]
+- **Status**: Completed
+
+## Feature 2: Responses from 3 LLMs with Best Answer Highlighting (Story Points: 5)
+- **Description**: When 3-LLM mode is enabled, users receive three responses and one best answer is highlighted for easier comparison
+- **Implementation**: Updated the backend to generate three responses, added judge logic to select the best answer, saved 3-LLM messages in the existing schema, and updated the frontend to display the grouped responses with highlighted best answer
+- **PR Links**: [Individual iteration work on Yang-Chen branch]
+- **Status**: Completed
+
+## Feature 3: Search and Filter Conversations with 3-LLM Responses (Story Points: 3)
+- **Description**: Returning users can identify and filter conversations created with 3-LLM mode
+- **Implementation**: Added a [3LLM] title prefix for 3-LLM conversations and added a history-page filter to show only 3-LLM conversations without changing the database schema
+- **PR Links**: [Individual iteration work on Yang-Chen branch]
+- **Status**: Completed
+
+## Technical Updates
+- Added helper logic for 3-LLM model selection, judge prompt construction, judge result parsing, and fallback best-answer selection
+- Added backend unit tests for 3-LLM helper logic using Jasmine
+- Added acceptance test scenarios for 3-LLM workflow using Cucumber and Puppeteer
+- Updated homepage behavior so users start a conversation from the landing page and continue it in the dedicated conversation page
+- Improved empty-state messaging and page layout to better support the new 3-LLM workflow
