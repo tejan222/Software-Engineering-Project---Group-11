@@ -21,34 +21,61 @@
         </div>
     </header>
 
-    <main>
-        <!-- <section class="hero">
-            <button onclick="window.location.href='history.html'">&lt; Back</button>
-            <h1 id="conversationTitle">Chat</h1>
+    <main class="conversation-layout">
 
-            <div id="chatBox"></div>
+    <!-- LEFT SIDEBAR -->
+    <aside class="customize-panel">
+        <h3>Customize</h3>
 
-            <div class="search-container">
-                <input type="text" id="promptInput" placeholder="Ask me anything...">
-                <button onclick="sendPrompt()">ASK</button>
+        <label class="section-label">
+            <input type="checkbox" id="specializedMode" onchange="toggleSpecializedMode(this)">
+        </label>
+        <div id="specializedOptions" style="display:none; margin-left:10px;">
+            <label><input type="radio" name="specializedType" value="math"> Math</label><br>
+            <label><input type="radio" name="specializedType" value="weather"> Weather</label>
+        </div>
+
+        <hr>
+        <strong>Model Selection</strong>
+
+        <div class="model-section">
+            <label>
+                <input type="checkbox" id="useLocal" onchange="toggleLocalModels(this)"> Local            </label>
+            <div id="localModels" style="display:none; margin-left:10px;">
+                <label><input type="radio" name="modelChoice" value="local-qwen2.5"> qwen2.5</label><br>
+                <label><input type="radio" name="modelChoice" value="local-mistral"> mistral</label><br>
+                <label><input type="radio" name="modelChoice" value="local-gemma"> gemma</label>
             </div>
-        </section> -->
-        <section class="hero">
-            <button onclick="window.location.href='history.html'">&lt; Back</button>
-            <h1 id="conversationTitle">New Chat</h1>
-            <div class="three-llm-toggle-row">
-                <label for="threeLLMToggle" class="three-llm-toggle-label">
-                    <input type="checkbox" id="threeLLMToggle">
-                    <span>Have 3 LLMs respond</span>
-                </label>
-            </div>
-            <div id="chatBox"></div>
-            <div class="search-container">
-                <input type="text" id="promptInput" placeholder="Ask me anything...">
-                <button onclick="sendPrompt()">ASK</button>
-            </div>
-        </section>
-    </main>
+        </div>
+
+        <div class="model-section">
+            <label>
+                <input type="checkbox" id="usePublic" onchange="togglePublicModels(this)"> Public
+            </label>
+            <div id="publicModels" style="display:none; margin-left:10px;">
+                <label><input type="radio" name="modelChoice" value="public-gemini"> Gemini</label><br>
+                <label><input type="radio" name="modelChoice" value="public-llama3"> Llama 3 (Groq) </label>            </div>
+        </div>
+
+        <hr>
+        <label class="section-label">
+            <input type="checkbox" id="threeLLMToggle">
+            Have 3 LLMs respond
+        </label>
+    </aside>
+
+    <!-- MAIN CHAT AREA -->
+    <section class="hero">
+        <button onclick="window.location.href='history.html'">&lt; Back</button>
+        <h1 id="conversationTitle">New Chat</h1>
+        <div id="chatBox"></div>
+        <div class="search-container">
+            <input type="text" id="promptInput" placeholder="Ask me anything...">
+            <button onclick="sendPrompt()">ASK</button>
+        </div>
+    </section>
+
+</main>
 
     <script src="js/app.js"></script>
 </body>

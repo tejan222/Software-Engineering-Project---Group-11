@@ -1,6 +1,37 @@
 console.log("JS loaded!");
 let currentConversationId = null;
 
+function getSelectedModel() {
+    const selected = document.querySelector('input[name="modelChoice"]:checked');
+    if (!selected) return { publicModel: null, useThreeLLMs: false };
+
+    const value = selected.value;
+    if (value.startsWith("public-")) {
+        return { publicModel: value.replace("public-", ""), useThreeLLMs: false };
+    }
+    return { publicModel: null, useThreeLLMs: false };
+}
+
+function toggleLocalModels(checkbox) {
+    document.getElementById("localModels").style.display = checkbox.checked ? "block" : "none";
+    if (checkbox.checked) {
+        document.getElementById("usePublic").checked = false;
+        document.getElementById("publicModels").style.display = "none";
+    }
+}
+
+function togglePublicModels(checkbox) {
+    document.getElementById("publicModels").style.display = checkbox.checked ? "block" : "none";
+    if (checkbox.checked) {
+        document.getElementById("useLocal").checked = false;
+        document.getElementById("localModels").style.display = "none";
+    }
+}
+
+function toggleSpecializedMode(checkbox) {
+    document.getElementById("specializedOptions").style.display = checkbox.checked ? "block" : "none";
+}
+
 // SIGN UP
 async function signupUser(event) {
     event.preventDefault();
@@ -222,7 +253,8 @@ async function sendPrompt() {
         return;
     }
 
-    const useThreeLLMs = threeLLMToggle ? threeLLMToggle.checked : false;
+    const threeLLMs = threeLLMToggle ? threeLLMToggle.checked : false;
+    const { publicModel, useThreeLLMs } = threeLLMs ? { publicModel: null, useThreeLLMs: true } : getSelectedModel();
 
     let interval;
     let loadingTurn;
@@ -262,12 +294,12 @@ async function sendPrompt() {
             body: JSON.stringify({
                 prompt,
                 conversationId: currentConversationId,
-                useThreeLLMs
+                useThreeLLMs,
+                publicModel
             })
         });
 
         const data = await response.json();
-
         if (data.conversationId) {
             const isBrandNewConversation = !currentConversationId;
             currentConversationId = data.conversationId;
@@ -574,4 +606,20 @@ document.addEventListener("DOMContentLoaded", () => {
     checkLoginStatus();
     loadHistory();
     loadConversation();
+
+    document.getElementById("useLocal")?.addEventListener("change", function () {
+        document.getElementById("localModels").style.display = this.checked ? "block" : "none";
+        if (this.checked) document.getElementById("usePublic").checked = false;
+        document.getElementById("publicModels").style.display = "none";
+    });
+
+    document.getElementById("usePublic")?.addEventListener("change", function () {
+        document.getElementById("publicModels").style.display = this.checked ? "block" : "none";
+        if (this.checked) document.getElementById("useLocal").checked = false;
+        document.getElementById("localModels").style.display = "none";
+    });
+
+    document.getElementById("specializedMode")?.addEventListener("change", function () {
+        document.getElementById("specializedOptions").style.display = this.checked ? "block" : "none";
+    });
 });

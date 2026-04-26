@@ -1,4 +1,6 @@
+require("dotenv").config();
 const express = require("express");
+
 const cors = require("cors");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
@@ -17,6 +19,7 @@ const {
     DEFAULT_SINGLE_MODEL,
     getSingleLLMResponse,
     getThreeLLMResponses,
+    getPublicLLMResponse,
     chooseBestResponse,
     buildConversationTurns
 } = require("./llmHelpers");
@@ -98,7 +101,7 @@ db.run(`
 app.use(express.json());
 
 app.use(cors({
-    origin: "http://localhost:5500",
+    origin: ["http://localhost:5500", "http://127.0.0.1:5500"],
     credentials: true
 }));
 
@@ -403,7 +406,9 @@ app.post("/api/chat", async (req, res) => {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    const { prompt, conversationId, useThreeLLMs } = req.body;
+    const { prompt, conversationId, useThreeLLMs, publicModel } = req.body;
+
+    console.log("publicModel received:", publicModel); 
 
     if (!prompt || !prompt.trim()) {
         return res.status(400).json({ message: "Prompt is required." });
@@ -417,7 +422,11 @@ app.post("/api/chat", async (req, res) => {
         let responses;
         let bestModel;
 
-        if (shouldUseThreeLLMs) {
+        if (publicModel) {
+            const singleResponse = await getPublicLLMResponse(publicModel, trimmedPrompt);
+            responses = [singleResponse];
+            bestModel = singleResponse.model;
+        } else if (shouldUseThreeLLMs) {
             responses = await getThreeLLMResponses(trimmedPrompt);
             bestModel = chooseBestResponse(responses);
         } else {
@@ -543,9 +552,9 @@ app.post("/api/chat", async (req, res) => {
             );
         }
     } catch (error) {
-        console.error("Ollama connection error:", error.message);
+        console.error("LLM connection error:", error.message);
         return res.status(500).json({
-            message: "Could not connect to local Ollama."
+        message: `LLM error: ${error.message}`
         });
     }
 });
@@ -800,3 +809,4 @@ app.get("/api/history/:id", (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
