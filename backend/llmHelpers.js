@@ -38,14 +38,18 @@ async function getThreeLLMResponses(prompt) {
     });
 }
 
-async function fetchGeminiReply(prompt) {
+
+async function fetchGeminiReply(prompt, systemPrompt = null) {
     const apiKey = process.env.GEMINI_API_KEY;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+
     const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+            contents: [{ parts: [{ text: fullPrompt }] }]
         })
     });
 
@@ -59,8 +63,14 @@ async function fetchGeminiReply(prompt) {
     return { model: "gemini", reply };
 }
 
-async function fetchGroqReply(prompt) {
+async function fetchGroqReply(prompt, systemPrompt = null) {
     const apiKey = process.env.GROQ_API_KEY;
+
+    const messages = [];
+    if (systemPrompt) {
+        messages.push({ role: "system", content: systemPrompt });
+    }
+    messages.push({ role: "user", content: prompt });
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -70,7 +80,7 @@ async function fetchGroqReply(prompt) {
         },
         body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
-            messages: [{ role: "user", content: prompt }],
+            messages,
             max_tokens: 512
         })
     });
@@ -112,9 +122,9 @@ async function fetchClaudeReply(prompt) {
     return { model: "claude", reply };
 }
 
-async function getPublicLLMResponse(modelName, prompt) {
-    if (modelName === "gemini") return fetchGeminiReply(prompt);
-    if (modelName === "llama3") return fetchGroqReply(prompt);
+async function getPublicLLMResponse(modelName, prompt, systemPrompt = null) {
+    if (modelName === "gemini") return fetchGeminiReply(prompt, systemPrompt);
+    if (modelName === "llama3") return fetchGroqReply(prompt, systemPrompt);
     throw new Error(`Unknown public model: ${modelName}`);
 }
 

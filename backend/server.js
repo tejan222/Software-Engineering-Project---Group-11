@@ -406,8 +406,7 @@ app.post("/api/chat", async (req, res) => {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    const { prompt, conversationId, useThreeLLMs, publicModel } = req.body;
-
+    const { prompt, conversationId, useThreeLLMs, publicModel, specializedMode } = req.body;
     console.log("publicModel received:", publicModel); 
 
     if (!prompt || !prompt.trim()) {
@@ -422,8 +421,20 @@ app.post("/api/chat", async (req, res) => {
         let responses;
         let bestModel;
 
+        let systemPrompt = null;
+        if (specializedMode === "math") {
+            systemPrompt = "You are a math tutor. Always solve problems step by step, showing each step clearly. Explain your reasoning at each step.";
+        } else if (specializedMode === "weather") {
+            const { weatherContext } = req.body;
+            if (weatherContext) {
+                systemPrompt = `You are a weather assistant. Use this real weather data to answer: ${weatherContext}. Provide a helpful, conversational response about the weather.`;
+            } else {
+                systemPrompt = "You are a weather assistant. Help the user with weather related questions.";
+            }
+        }
+        
         if (publicModel) {
-            const singleResponse = await getPublicLLMResponse(publicModel, trimmedPrompt);
+            const singleResponse = await getPublicLLMResponse(publicModel, trimmedPrompt, systemPrompt);
             responses = [singleResponse];
             bestModel = singleResponse.model;
         } else if (shouldUseThreeLLMs) {
@@ -804,6 +815,39 @@ app.get("/api/history/:id", (req, res) => {
             );
         }
     );
+});
+
+app.post("/api/weather", async (req, res) => {
+    const { city } = req.body;
+    
+    if (!city) {
+        return res.status(400).json({ message: "City is required." });
+    }
+
+    try {
+        const apiKey = process.env.WEATHER_API_KEY;
+        const weatherResponse = await fetch(
+            `http://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=imperial`
+        );
+
+        if (!weatherResponse.ok) {
+            return res.status(404).json({ message: "City not found." });
+        }
+
+        const weatherData = await weatherResponse.json();
+        
+        return res.json({
+            city: weatherData.name,
+            temperature: weatherData.main.temp,
+            feels_like: weatherData.main.feels_like,
+            description: weatherData.weather[0].description,
+            humidity: weatherData.main.humidity,
+            wind_speed: weatherData.wind.speed
+        });
+    } catch (error) {
+        console.error("Weather API error:", error.message);
+        return res.status(500).json({ message: "Could not fetch weather." });
+    }
 });
 
 app.listen(PORT, () => {

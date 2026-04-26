@@ -284,6 +284,38 @@ async function sendPrompt() {
                 loadingCard.innerHTML = `<p><strong>LLM:</strong> Loading${".".repeat(dots)}</p>`;
             }
         }, 500);
+        
+        
+        const specializedMode = document.querySelector('input[name="specializedType"]:checked')?.value || null;
+
+
+
+        let weatherContext = null;
+        if (specializedMode === "weather") {
+            const cityMatch = prompt.match(/in ([a-zA-Z\s]+?)(?:\?|$|today|tomorrow|this week)/i);
+            const city = cityMatch ? cityMatch[1].trim() : prompt.trim();
+    
+            try {
+                const weatherRes = await fetch("http://localhost:3000/api/weather", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ city })
+                });
+        
+                if (weatherRes.ok) {
+                    const weatherData = await weatherRes.json();
+                    weatherContext = `Current weather in ${weatherData.city}: Temperature: ${weatherData.temperature}°F, Feels like: ${weatherData.feels_like}°F, Description: ${weatherData.description}, Humidity: ${weatherData.humidity}%, Wind speed: ${weatherData.wind_speed} mph`;
+                }
+
+            } catch (err) {
+                console.error("Weather fetch error:", err);
+            }
+        }
+
+        console.log("weatherContext:", weatherContext);
+        console.log("specializedMode:", specializedMode);
+
 
         const response = await fetch("http://localhost:3000/api/chat", {
             method: "POST",
@@ -291,11 +323,15 @@ async function sendPrompt() {
                 "Content-Type": "application/json"
             },
             credentials: "include",
+
+
             body: JSON.stringify({
                 prompt,
                 conversationId: currentConversationId,
                 useThreeLLMs,
-                publicModel
+                publicModel,
+                specializedMode,
+                weatherContext
             })
         });
 
