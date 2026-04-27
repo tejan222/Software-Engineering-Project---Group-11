@@ -1,12 +1,13 @@
 const {
   DEFAULT_SINGLE_MODEL,
   THREE_LLM_MODELS,
+  getSingleLLMResponse,
+  getPublicLLMResponse,
   chooseBestResponse,
   buildConversationTurns,
   filterThreeLLMConversations,
   searchConversationsByKeyword
 } = require('../llmHelpers');
-
 describe('llmHelpers', () => {
   describe('DEFAULT_SINGLE_MODEL', () => {
     it('is qwen2.5:7b', () => {
@@ -279,4 +280,118 @@ describe('llmHelpers', () => {
       expect(result).toEqual([]);
     });
   });
+});
+
+describe('getSingleLLMResponse', () => {
+
+    it('returns the correct model name and reply from Ollama', async () => {
+        const fakeResponse = {
+            ok: true,
+            text: () => Promise.resolve(""),
+            json: () => Promise.resolve({
+                message: { content: "x = 2" }
+            })
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        const result = await getSingleLLMResponse("Solve 2x + 3 = 7");
+        expect(result.model).toBe(DEFAULT_SINGLE_MODEL);
+        expect(result.reply).toBe("x = 2");
+    });
+
+    it('returns empty string when Ollama response has no content', async () => {
+        const fakeResponse = {
+            ok: true,
+            text: () => Promise.resolve(""),
+            json: () => Promise.resolve({ message: {} })
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        const result = await getSingleLLMResponse("Hello");
+        expect(result.reply).toBe("");
+    });
+
+    it('throws an error when Ollama returns a non-ok response', async () => {
+        const fakeResponse = {
+            ok: false,
+            text: () => Promise.resolve("Service unavailable")
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        await expectAsync(getSingleLLMResponse("Hello"))
+            .toBeRejectedWithError(/Ollama request failed/);
+    });
+
+});
+
+describe('getPublicLLMResponse - gemini', () => {
+
+    it('returns model name gemini and the reply text', async () => {
+        const fakeResponse = {
+            ok: true,
+            text: () => Promise.resolve(""),
+            json: () => Promise.resolve({
+                candidates: [{ content: { parts: [{ text: "It is 72°F and sunny." }] } }]
+            })
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        const result = await getPublicLLMResponse("gemini", "What is the weather?");
+        expect(result.model).toBe("gemini");
+        expect(result.reply).toBe("It is 72°F and sunny.");
+    });
+
+    it('returns empty string when Gemini response has no candidates', async () => {
+        const fakeResponse = {
+            ok: true,
+            text: () => Promise.resolve(""),
+            json: () => Promise.resolve({ candidates: [] })
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        const result = await getPublicLLMResponse("gemini", "Hello");
+        expect(result.reply).toBe("");
+    });
+
+    it('throws an error when Gemini returns a non-ok response', async () => {
+        const fakeResponse = {
+            ok: false,
+            text: () => Promise.resolve("API key invalid")
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        await expectAsync(getPublicLLMResponse("gemini", "Hello"))
+            .toBeRejectedWithError(/Gemini request failed/);
+    });
+
+});
+
+describe('getPublicLLMResponse - llama3', () => {
+
+    it('returns model name llama3 and the reply text', async () => {
+        const fakeResponse = {
+            ok: true,
+            text: () => Promise.resolve(""),
+            json: () => Promise.resolve({
+                choices: [{ message: { content: "Step 1: subtract 3 from both sides." } }]
+            })
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        const result = await getPublicLLMResponse("llama3", "Solve 2x + 3 = 7");
+        expect(result.model).toBe("llama3");
+        expect(result.reply).toBe("Step 1: subtract 3 from both sides.");
+    });
+
+    it('throws an error when Groq returns a non-ok response', async () => {
+        const fakeResponse = {
+            ok: false,
+            text: () => Promise.resolve("Rate limit exceeded")
+        };
+        spyOn(globalThis, "fetch").and.returnValue(Promise.resolve(fakeResponse));
+
+        await expectAsync(getPublicLLMResponse("llama3", "Hello"))
+            .toBeRejectedWithError(/Groq request failed/);
+    });
+
 });
