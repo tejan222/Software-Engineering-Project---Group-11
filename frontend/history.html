@@ -48,16 +48,12 @@
                 <button onclick="searchHistory()">Search</button>
             </div>
 
-            <div class="three-llm-filter-row">
-                <label class="three-llm-filter-label">
-                    <input type="checkbox" id="threeLLMFilter" onchange="loadHistory()">
-                    <span>Filter by 3 LLM conversations</span>
-                </label>
-            </div>
-
+            
             <div id="historyList"></div>
 
-            <button onclick="startNewChat()">New Chat</button>
+            <div class="new-chat-container">
+                <button onclick="startNewChat()">New Chat</button>
+            </div>
         </section>
     </main>
 
