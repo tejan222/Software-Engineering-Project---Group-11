@@ -797,3 +797,12 @@ input[type="radio"]:checked {
   animation: pulse 1.2s ease infinite;
 }
 
+.history-item a {
+  display: block;
+  width: 100%;
+  color: var(--white);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}

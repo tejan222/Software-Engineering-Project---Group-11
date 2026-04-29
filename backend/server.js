@@ -18,6 +18,7 @@ const {
 const {
     DEFAULT_SINGLE_MODEL,
     getSingleLLMResponse,
+    getLocalLLMResponse,
     getThreeLLMResponses,
     getPublicLLMResponse,
     chooseBestResponse,
@@ -406,7 +407,8 @@ app.post("/api/chat", async (req, res) => {
         return res.status(401).json({ message: "Not logged in." });
     }
 
-    const { prompt, conversationId, useThreeLLMs, publicModel, specializedMode } = req.body;
+    const { prompt, conversationId, useThreeLLMs, publicModel, localModel, specializedMode } = req.body;
+
     console.log("publicModel received:", publicModel); 
 
     if (!prompt || !prompt.trim()) {
@@ -437,9 +439,10 @@ app.post("/api/chat", async (req, res) => {
             const singleResponse = await getPublicLLMResponse(publicModel, trimmedPrompt, systemPrompt);
             responses = [singleResponse];
             bestModel = singleResponse.model;
-        } else if (shouldUseThreeLLMs) {
-            responses = await getThreeLLMResponses(trimmedPrompt);
-            bestModel = chooseBestResponse(responses);
+        } else if (localModel) {
+            const singleResponse = await getLocalLLMResponse(localModel , trimmedPrompt);
+            responses = [singleResponse];
+            bestModel = singleResponse.model;
         } else {
             const singleResponse = await getSingleLLMResponse(trimmedPrompt);
             responses = [singleResponse];

@@ -27,10 +27,7 @@
     <aside class="customize-panel">
         <h3>Customize</h3>
 
-        <label class="section-label">
-            <input type="checkbox" id="specializedMode" onchange="toggleSpecializedMode(this)">
-        </label>
-        <div id="specializedOptions" style="display:none; margin-left:10px;">
+        <div id="specializedOptions">
             <label><input type="radio" name="specializedType" value="math"> Math</label><br>
             <label><input type="radio" name="specializedType" value="weather"> Weather</label>
         </div>
@@ -44,9 +41,10 @@
             <div id="localModels" style="display:none; margin-left:10px;">
                 <label><input type="radio" name="modelChoice" value="local-qwen2.5"> qwen2.5</label><br>
                 <label><input type="radio" name="modelChoice" value="local-mistral"> mistral</label><br>
-                <label><input type="radio" name="modelChoice" value="local-gemma"> gemma</label>
+                <label><input type="radio" name="modelChoice" value="local-llama2"> llama2</label>
             </div>
         </div>
+
 
         <div class="model-section">
             <label>

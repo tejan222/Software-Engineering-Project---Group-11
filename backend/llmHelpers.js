@@ -38,6 +38,9 @@ async function getThreeLLMResponses(prompt) {
     });
 }
 
+async function getLocalLLMResponse(modelName, prompt) {
+    return fetchOllamaReply(modelName + ":7b", prompt);
+}
 
 async function fetchGeminiReply(prompt, systemPrompt = null) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -170,6 +173,7 @@ module.exports = {
     DEFAULT_SINGLE_MODEL,
     THREE_LLM_MODELS,
     getSingleLLMResponse,
+    getLocalLLMResponse,
     getThreeLLMResponses,
     getPublicLLMResponse,
     chooseBestResponse,

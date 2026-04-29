@@ -1,15 +1,20 @@
 console.log("JS loaded!");
 let currentConversationId = null;
 
+
+
 function getSelectedModel() {
     const selected = document.querySelector('input[name="modelChoice"]:checked');
-    if (!selected) return { publicModel: null, useThreeLLMs: false };
+    if (!selected) return { publicModel: null, localModel: null, useThreeLLMs: false };
 
     const value = selected.value;
     if (value.startsWith("public-")) {
-        return { publicModel: value.replace("public-", ""), useThreeLLMs: false };
+        return { publicModel: value.replace("public-", ""), localModel: null, useThreeLLMs: false };
     }
-    return { publicModel: null, useThreeLLMs: false };
+    if (value.startsWith("local-")) {
+        return { publicModel: null, localModel: value.replace("local-", ""), useThreeLLMs: false };
+    }
+    return { publicModel: null, localModel: null, useThreeLLMs: false };
 }
 
 function toggleLocalModels(checkbox) {
@@ -19,6 +24,7 @@ function toggleLocalModels(checkbox) {
         document.getElementById("publicModels").style.display = "none";
     }
 }
+
 
 function togglePublicModels(checkbox) {
     document.getElementById("publicModels").style.display = checkbox.checked ? "block" : "none";
@@ -254,7 +260,7 @@ async function sendPrompt() {
     }
 
     const threeLLMs = threeLLMToggle ? threeLLMToggle.checked : false;
-    const { publicModel, useThreeLLMs } = threeLLMs ? { publicModel: null, useThreeLLMs: true } : getSelectedModel();
+    const { publicModel, localModel, useThreeLLMs } = threeLLMs ? { publicModel: null, localModel: null, useThreeLLMs: true } : getSelectedModel();
 
     let interval;
     let loadingTurn;
@@ -330,6 +336,7 @@ async function sendPrompt() {
                 conversationId: currentConversationId,
                 useThreeLLMs,
                 publicModel,
+                localModel,
                 specializedMode,
                 weatherContext
             })
@@ -579,7 +586,7 @@ async function loadConversation() {
 
         let turnHtml = "";
 
-        if (data.conversation.used_three_llms && data.turns?.length) {
+        if (false) {
             for (const turn of data.turns){
                 const bestModelRow = turn.modelResponses.find(response => response.is_best === 1);
                 const bestModel = bestModelRow ? bestModelRow.model_name : null;
@@ -655,7 +662,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("localModels").style.display = "none";
     });
 
-    document.getElementById("specializedMode")?.addEventListener("change", function () {
-        document.getElementById("specializedOptions").style.display = this.checked ? "block" : "none";
+    document.querySelectorAll('input[name="specializedType"]').forEach(radio => {
+    radio.addEventListener("change", function() {
+        const localSection = document.querySelector(".model-section");
+        if (this.value === "weather") {
+            localSection.style.display = "none";
+            document.getElementById("useLocal").checked = false;
+            document.getElementById("localModels").style.display = "none";
+        } else {
+            localSection.style.display = "block";
+        }
     });
 });
+});
+
