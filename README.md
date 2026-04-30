@@ -91,6 +91,7 @@ To run unit tests:
 - Create new terminal in project root directory
 - Navigate to backend directory using "cd backend"
 - Run "npx jasmine" in the new terminal
+
 To run acceptance tests:
 - Start backend
 - Start frontend
