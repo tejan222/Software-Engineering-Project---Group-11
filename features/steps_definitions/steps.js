@@ -14,6 +14,114 @@ let lastSearchResults = null;
 let lastChatText = '';
 let lastResponseCount = 0;
 let lastBestResponseCount = 0;
+let pendingPrompt = '';
+
+async function ensureBrowser() {
+  if (browser && page) {
+    return;
+  }
+
+  const launchOptions = {
+    headless: false,
+    slowMo: 80
+  };
+
+  try {
+    browser = await puppeteer.launch({
+      ...launchOptions,
+      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    });
+  } catch (err) {
+    browser = await puppeteer.launch(launchOptions);
+  }
+
+  page = await browser.newPage();
+  page.on('dialog', async dialog => {
+    await dialog.accept();
+  });
+}
+
+async function ensureRegisteredUser() {
+  try {
+    await fetch(`${baseBackend}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'student_1234567@gmail.com',
+        password: 'Passwordsecret123$',
+        confirmPassword: 'Passwordsecret123$'
+      })
+    });
+  } catch (err) {
+    // The login step below will fail clearly if the backend is unavailable.
+  }
+}
+
+async function ensureLoggedIn() {
+  await ensureBrowser();
+  await ensureRegisteredUser();
+
+  await page.goto(`${baseFrontend}/login.html`, { waitUntil: 'networkidle2' });
+  await page.waitForSelector('#email');
+  await page.click('#email', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('#email', 'student_1234567@gmail.com');
+
+  await page.click('#password', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('#password', 'Passwordsecret123$');
+
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2' }),
+    page.click('#loginForm button[type="submit"]')
+  ]);
+}
+
+async function sendPendingPromptIfNeeded() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.waitForSelector('#chatBox', { timeout: 10000 });
+
+      const hasResponse = await page.evaluate(() => {
+        const chatBox = document.getElementById('chatBox');
+        return chatBox && chatBox.textContent.trim().length > 0;
+      });
+
+      if (!hasResponse) {
+        await page.click('button[onclick="sendPrompt()"]');
+      }
+
+      await page.waitForFunction(
+        () => {
+          const chatBox = document.getElementById('chatBox');
+          if (!chatBox) return false;
+
+          const text = chatBox.innerText || '';
+          return text.includes('Error') ||
+                 (text.length > 0 && !text.includes('Loading'));
+        },
+        { timeout: 180000 }
+      );
+
+      await page.waitForSelector('#chatBox', { timeout: 10000 });
+      lastChatText = await page.evaluate(() => {
+        const chatBox = document.getElementById('chatBox');
+        return chatBox ? chatBox.textContent.trim() : '';
+      });
+      return;
+    } catch (err) {
+      const contextWasDestroyed = err.message.includes('Execution context was destroyed') ||
+        err.message.includes('Cannot find context with specified id');
+
+      if (!contextWasDestroyed || attempt === 2) {
+        throw err;
+      }
+
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => {});
+      await page.waitForSelector('#chatBox', { timeout: 10000 });
+    }
+  }
+}
 
 Given('I am on the sign up page', async function () {
     if (!browser) {
@@ -354,8 +462,133 @@ Then('I should see all matching messages containing {string}', async function (k
 // INDIVIDUAL ITERATION (Shruthi Shankar)
 
 Given('I am on the new chat page', async function () {
+  await ensureLoggedIn();
   await page.goto(`${baseFrontend}/conversation.html`, { waitUntil: 'networkidle2' });
   await page.waitForSelector('#promptInput');
+});
+
+When('I check the {string} checkbox', async function (checkboxName) {
+  await page.waitForSelector('#specializedOptions');
+
+  if (checkboxName !== 'Specialized Mode') {
+    throw new Error(`Unknown checkbox: ${checkboxName}`);
+  }
+
+  const isVisible = await page.$eval('#specializedOptions', el => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  });
+
+  expect(isVisible).toBe(true);
+});
+
+When('I select the {string} option', async function (optionName) {
+  const value = optionName.toLowerCase();
+  await page.waitForSelector(`input[name="specializedType"][value="${value}"]`);
+  await page.click(`input[name="specializedType"][value="${value}"]`);
+});
+
+Then('the math mode should be enabled', async function () {
+  const isChecked = await page.$eval('input[name="specializedType"][value="math"]', el => el.checked);
+  expect(isChecked).toBe(true);
+});
+
+When('I check the {string} model section', async function (sectionName) {
+  const normalizedName = sectionName.toLowerCase();
+  const selector = normalizedName === 'local' ? '#useLocal' : normalizedName === 'public' ? '#usePublic' : null;
+
+  if (!selector) {
+    throw new Error(`Unknown model section: ${sectionName}`);
+  }
+
+  await page.waitForSelector(selector);
+  const isChecked = await page.$eval(selector, el => el.checked);
+  if (!isChecked) {
+    await page.click(selector);
+  }
+});
+
+When('I select the local model {string}', async function (modelName) {
+  await page.waitForSelector('#localModels');
+  const selector = `input[name="modelChoice"][value="local-${modelName}"]`;
+  await page.waitForSelector(selector);
+  await page.click(selector);
+});
+
+Then('the local model {string} should be selected', async function (modelName) {
+  const selector = `input[name="modelChoice"][value="local-${modelName}"]`;
+  const isChecked = await page.$eval(selector, el => el.checked);
+  expect(isChecked).toBe(true);
+});
+
+When('I select the public model {string}', async function (modelName) {
+  await page.waitForSelector('#publicModels');
+  const value = modelName.toLowerCase() === 'gemini' ? 'gemini' : modelName.toLowerCase();
+  const selector = `input[name="modelChoice"][value="public-${value}"]`;
+  await page.waitForSelector(selector);
+  await page.click(selector);
+});
+
+Then('the public model {string} should be selected', async function (modelName) {
+  const value = modelName.toLowerCase() === 'gemini' ? 'gemini' : modelName.toLowerCase();
+  const selector = `input[name="modelChoice"][value="public-${value}"]`;
+  const isChecked = await page.$eval(selector, el => el.checked);
+  expect(isChecked).toBe(true);
+});
+
+Given('I enable specialized math mode', async function () {
+  await page.waitForSelector('input[name="specializedType"][value="math"]');
+  await page.click('input[name="specializedType"][value="math"]');
+});
+
+Given('I enable specialized weather mode', async function () {
+  await page.waitForSelector('input[name="specializedType"][value="weather"]');
+  await page.click('input[name="specializedType"][value="weather"]');
+});
+
+When('I type {string} into the chat box', async function (message) {
+  pendingPrompt = message;
+  await page.waitForSelector('#promptInput');
+  await page.click('#promptInput', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('#promptInput', message);
+});
+
+When('I type {string}  into the chat box', async function (message) {
+  pendingPrompt = message;
+  await page.waitForSelector('#promptInput');
+  await page.click('#promptInput', { clickCount: 3 });
+  await page.keyboard.press('Backspace');
+  await page.type('#promptInput', message);
+});
+
+When('I click {string} button', async function (buttonName) {
+  if (buttonName !== 'ASK') {
+    throw new Error(`Unknown button: ${buttonName}`);
+  }
+
+  await page.click('button[onclick="sendPrompt()"]');
+  await sendPendingPromptIfNeeded();
+});
+
+Then('I should see a step by step math response', async function () {
+  await sendPendingPromptIfNeeded();
+
+  expect(lastChatText.includes(pendingPrompt)).toBe(true);
+  expect(lastChatText.includes('Error:')).toBe(false);
+});
+
+Then('I should see a weather realted response', async function () {
+  await sendPendingPromptIfNeeded();
+
+  expect(lastChatText.includes(pendingPrompt)).toBe(true);
+  expect(lastChatText.includes('Error:')).toBe(false);
+
+  if (browser) {
+    await browser.close();
+    browser = null;
+    page = null;
+  }
 });
 
 Given('I check "Have 3 LLMs respond"', async function () {
