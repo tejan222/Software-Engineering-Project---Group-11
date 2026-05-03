@@ -7,3 +7,4 @@ backend/users.db
 *.log
 .DS_Store
 Thumbs.db
+.env

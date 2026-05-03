@@ -22,7 +22,7 @@
     </header>
 
     <main>
-        <section class="hero">
+        <!-- <section class="hero">
             <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
                 &lt; Back
             </button>
@@ -36,6 +36,24 @@
             <div id="historyList"></div>
 
             <button onclick="startNewChat()">New Chat</button>
+        </section> -->
+        <section class="hero">
+            <button id="historyBackButton" onclick="resetHistory()" style="display: none;">
+                &lt; Back
+            </button>
+            <h1>Conversation History</h1>
+
+            <div class="search-container">
+                <input type="text" id="historySearchInput" placeholder="Search conversations...">
+                <button onclick="searchHistory()">Search</button>
+            </div>
+
+            
+            <div id="historyList"></div>
+
+            <div class="new-chat-container">
+                <button onclick="startNewChat()">New Chat</button>
+            </div>
         </section>
     </main>
 

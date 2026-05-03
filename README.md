@@ -82,3 +82,17 @@ We are using Cucumber and Puppeteer to simulate real user interactions.
 - Ensure that the Backend Server is running at 'http://localhost:3000'
 - Ensure the Frontend is running via Live Server at 'http://localhost:5500'
 - From root directory run : npx cucumber-js
+
+## INDIVIDUAL ITERATION (Shruthi Shankar)
+Make sure that the Ollama models qwen2.5:7b, mistral:7b, and llama2:7b are installed locally.
+To run unit tests:
+- Start backend
+- Start frontend
+- Create new terminal in project root directory
+- Navigate to backend directory using "cd backend"
+- Run "npx jasmine" in the new terminal
+To run acceptance tests:
+- Start backend
+- Start frontend
+- Create new terminal in project root directory
+- Run "npx cucumber-js features/07_threeLLM.feature features/08_bestResponse.feature features/09_filterThreeLLMHistory.feature --require features/steps_definitions/steps.js" in new terminal

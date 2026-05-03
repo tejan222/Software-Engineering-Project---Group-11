@@ -1,5 +1,42 @@
-console.log("JS loaded!")
+console.log("JS loaded!");
 let currentConversationId = null;
+
+
+
+function getSelectedModel() {
+    const selected = document.querySelector('input[name="modelChoice"]:checked');
+    if (!selected) return { publicModel: null, localModel: null, useThreeLLMs: false };
+
+    const value = selected.value;
+    if (value.startsWith("public-")) {
+        return { publicModel: value.replace("public-", ""), localModel: null, useThreeLLMs: false };
+    }
+    if (value.startsWith("local-")) {
+        return { publicModel: null, localModel: value.replace("local-", ""), useThreeLLMs: false };
+    }
+    return { publicModel: null, localModel: null, useThreeLLMs: false };
+}
+
+function toggleLocalModels(checkbox) {
+    document.getElementById("localModels").style.display = checkbox.checked ? "block" : "none";
+    if (checkbox.checked) {
+        document.getElementById("usePublic").checked = false;
+        document.getElementById("publicModels").style.display = "none";
+    }
+}
+
+
+function togglePublicModels(checkbox) {
+    document.getElementById("publicModels").style.display = checkbox.checked ? "block" : "none";
+    if (checkbox.checked) {
+        document.getElementById("useLocal").checked = false;
+        document.getElementById("localModels").style.display = "none";
+    }
+}
+
+function toggleSpecializedMode(checkbox) {
+    document.getElementById("specializedOptions").style.display = checkbox.checked ? "block" : "none";
+}
 
 // SIGN UP
 async function signupUser(event) {
@@ -144,12 +181,76 @@ async function checkLoginStatus() {
     }
 }
 
+function renderMultiLLMResponses(responses, bestModel) {
+    return responses.map(response => `
+        <div class="llm-response-card ${response.model === bestModel ? "best-response" : ""}">
+            <p>
+                <strong>${response.model}</strong>
+                ${response.model === bestModel ? " ⭐ Best Response" : ""}
+            </p>
+            <p>${response.reply}</p>
+        </div>
+    `).join("");
+}
+
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function renderTurn(prompt, responses = [], bestModel = null) {
+    const safePrompt = escapeHtml(prompt);
+    const isMultiLLMTurn = responses.length > 1;
+
+    const responsesHtml = responses.length
+        ? responses.map(response => {
+            const shouldHighlight = isMultiLLMTurn && response.model === bestModel;
+            const bestLabel = shouldHighlight ? " ⭐ Best Response" : "";
+
+            return `
+                <div class="llm-response-card ${shouldHighlight ? "best-response" : ""}">
+                    <p>
+                        <strong>${escapeHtml(response.model)}</strong>${bestLabel}
+                    </p>
+                    <p>${escapeHtml(response.reply)}</p>
+                </div>
+            `;
+        }).join("")
+        : `<p><strong>LLM:</strong> No response available.</p>`;
+
+    return `
+        <div class="chat-turn">
+            <div class="user-turn">
+                <p><strong>You:</strong> ${safePrompt}</p>
+            </div>
+            <div class="llm-turn-group">
+                ${responsesHtml}
+            </div>
+        </div>
+    `;
+}
+
+function setThreeLLMToggleLocked(locked) {
+    const threeLLMToggle = document.getElementById("threeLLMToggle");
+
+    if (!threeLLMToggle) {
+        return;
+    }
+
+    threeLLMToggle.disabled = locked;
+}
+
 // SEND PROMPT TO BACKEND / OLLAMA
 async function sendPrompt() {
     const promptInput = document.getElementById("promptInput");
     const chatBox = document.getElementById("chatBox");
+    const threeLLMToggle = document.getElementById("threeLLMToggle");
 
-    if (!promptInput || !chatBox) return;
+    if (!promptInput || !chatBox) {
+        return;
+    }
 
     const prompt = promptInput.value.trim();
 
@@ -158,63 +259,153 @@ async function sendPrompt() {
         return;
     }
 
+    const threeLLMs = threeLLMToggle ? threeLLMToggle.checked : false;
+    const { publicModel, localModel, useThreeLLMs } = threeLLMs ? { publicModel: null, localModel: null, useThreeLLMs: true } : getSelectedModel();
+
     let interval;
-    let loadingElement;
+    let loadingTurn;
+
     try {
-        // User message
-        chatBox.innerHTML += `<p><strong>You:</strong> ${prompt}</p>`;
+        loadingTurn = document.createElement("div");
+        loadingTurn.className = "chat-turn";
+        loadingTurn.innerHTML = `
+            <div class="user-turn">
+                <p><strong>You:</strong> ${escapeHtml(prompt)}</p>
+            </div>
+            <div class="llm-turn-group">
+                <div class="llm-response-card">
+                    <p><strong>LLM:</strong> Loading</p>
+                </div>
+            </div>
+        `;
+
+        chatBox.appendChild(loadingTurn);
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // Loading element
-        loadingElement = document.createElement("p");
-        chatBox.appendChild(loadingElement);
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // Animated dots
         let dots = 0;
         interval = setInterval(() => {
             dots = (dots + 1) % 4;
-            loadingElement.innerHTML = `<strong>LLM:</strong> Loading${".".repeat(dots)}`;
+            const loadingCard = loadingTurn.querySelector(".llm-response-card");
+            if (loadingCard) {
+                loadingCard.innerHTML = `<p><strong>LLM:</strong> Loading${".".repeat(dots)}</p>`;
+            }
         }, 500);
+        
+        
+        const specializedMode = document.querySelector('input[name="specializedType"]:checked')?.value || null;
 
-        // Send request
+
+
+        let weatherContext = null;
+        if (specializedMode === "weather") {
+            const cityMatch = prompt.match(/in ([a-zA-Z\s]+?)(?:\?|$|today|tomorrow|this week)/i);
+            const city = cityMatch ? cityMatch[1].trim() : prompt.trim();
+    
+            try {
+                const weatherRes = await fetch("http://localhost:3000/api/weather", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ city })
+                });
+        
+                if (weatherRes.ok) {
+                    const weatherData = await weatherRes.json();
+                    weatherContext = `Current weather in ${weatherData.city}: Temperature: ${weatherData.temperature}°F, Feels like: ${weatherData.feels_like}°F, Description: ${weatherData.description}, Humidity: ${weatherData.humidity}%, Wind speed: ${weatherData.wind_speed} mph`;
+                }
+
+            } catch (err) {
+                console.error("Weather fetch error:", err);
+            }
+        }
+
+        console.log("weatherContext:", weatherContext);
+        console.log("specializedMode:", specializedMode);
+
+
         const response = await fetch("http://localhost:3000/api/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             credentials: "include",
+
+
             body: JSON.stringify({
                 prompt,
-                conversationId: currentConversationId
+                conversationId: currentConversationId,
+                useThreeLLMs,
+                publicModel,
+                localModel,
+                specializedMode,
+                weatherContext
             })
         });
 
         const data = await response.json();
-
         if (data.conversationId) {
+            const isBrandNewConversation = !currentConversationId;
             currentConversationId = data.conversationId;
+            if (isBrandNewConversation) {
+                const newUrl = `conversation.html?id=${data.conversationId}`;
+                window.history.replaceState({}, "", newUrl);
+                const titleElement = document.getElementById("conversationTitle");
+                if (titleElement) {
+                    titleElement.textContent = prompt.length > 40
+                        ? `${prompt.slice(0, 40)}...`
+                        : prompt;
+                }
+            }
+            setThreeLLMToggleLocked(true);
         }
 
-        clearInterval(interval);
+        if (interval) {
+            clearInterval(interval);
+        }
 
         if (!response.ok) {
-            loadingElement.innerHTML = `<strong>LLM:</strong> Error: ${data.message}`;
+            loadingTurn.innerHTML = `
+                <div class="user-turn">
+                    <p><strong>You:</strong> ${escapeHtml(prompt)}</p>
+                </div>
+                <div class="llm-turn-group">
+                    <div class="llm-response-card">
+                        <p><strong>LLM:</strong> Error: ${escapeHtml(data.message)}</p>
+                    </div>
+                </div>
+            `;
             return;
         }
 
-        // Final response
-        loadingElement.innerHTML = `<strong>LLM:</strong> ${data.reply}`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        const responses = data.responses || [
+            {
+                model: data.bestModel || "LLM",
+                reply: data.reply || ""
+            }
+        ];
 
+        loadingTurn.outerHTML = renderTurn(prompt, responses, data.bestModel);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
         promptInput.value = "";
     } catch (error) {
-        if (interval){
+        if (interval) {
             clearInterval(interval);
         }
+
         console.error("Chat error:", error);
-        if (loadingElement){
-            loadingElement.innerHTML = `<strong>LLM:</strong> Error: Could not connect.`;
+
+        if (loadingTurn) {
+            loadingTurn.innerHTML = `
+                <div class="user-turn">
+                    <p><strong>You:</strong> ${escapeHtml(prompt)}</p>
+                </div>
+                <div class="llm-turn-group">
+                    <div class="llm-response-card">
+                        <p><strong>LLM:</strong> Error: Could not connect.</p>
+                    </div>
+                </div>
+            `;
         }
     }
 }
@@ -224,15 +415,57 @@ function formatDate(dateString) {
     return date.toLocaleDateString();
 }
 
-async function loadHistory() {
+function buildHistoryUrl(baseUrl, query = "", filterThreeLLMs = false) {
+    const params = new URLSearchParams();
+
+    if (query) {
+        params.set("q", query);
+    }
+
+    if (filterThreeLLMs) {
+        params.set("three", "true");
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+}
+
+function renderHistoryList(conversations) {
     const historyList = document.getElementById("historyList");
 
     if (!historyList) {
         return;
     }
 
+    if (!conversations.length) {
+        historyList.innerHTML = "<p>No matching conversations found.</p>";
+        return;
+    }
+
+    historyList.innerHTML = conversations.map(conversation => `
+        <div class="history-item">
+            <a href="conversation.html?id=${conversation.id}">
+                ${conversation.title} ${conversation.used_three_llms ? "[3 LLM]" : ""}
+            </a>
+            <span>${formatDate(conversation.updated_at)}</span>
+        </div>
+    `).join("");
+}
+
+async function loadHistory() {
+    const historyList = document.getElementById("historyList");
+    const threeLLMFilter = document.getElementById("threeLLMFilter");
+
+    if (!historyList) {
+        return;
+    }
+
+    const filterThreeLLMs = threeLLMFilter ? threeLLMFilter.checked : false;
+
     try {
-        const response = await fetch("http://localhost:3000/api/history", {
+        const url = buildHistoryUrl("http://localhost:3000/api/history", "", filterThreeLLMs);
+
+        const response = await fetch(url, {
             method: "GET",
             credentials: "include"
         });
@@ -249,14 +482,7 @@ async function loadHistory() {
             return;
         }
 
-        historyList.innerHTML = data.conversations.map(conversation => `
-            <div class="history-item">
-                <a href="conversation.html?id=${conversation.id}">
-                    ${conversation.title}
-                </a>
-                <span>${formatDate(conversation.updated_at)}</span>
-            </div>
-        `).join("");
+        renderHistoryList(data.conversations);
     } catch (error) {
         console.error("Load history error:", error);
         historyList.innerHTML = "<p>Could not connect to backend.</p>";
@@ -266,12 +492,15 @@ async function loadHistory() {
 async function searchHistory() {
     const input = document.getElementById("historySearchInput");
     const historyList = document.getElementById("historyList");
+    const backButton = document.getElementById("historyBackButton");
+    const threeLLMFilter = document.getElementById("threeLLMFilter");
 
     if (!input || !historyList) {
         return;
     }
 
     const q = input.value.trim();
+    const filterThreeLLMs = threeLLMFilter ? threeLLMFilter.checked : false;
 
     if (!q) {
         resetHistory();
@@ -279,13 +508,16 @@ async function searchHistory() {
     }
 
     try {
-        const response = await fetch(
-            `http://localhost:3000/api/history/search?q=${encodeURIComponent(q)}`,
-            {
-                method: "GET",
-                credentials: "include"
-            }
+        const url = buildHistoryUrl(
+            "http://localhost:3000/api/history/search",
+            q,
+            filterThreeLLMs
         );
+
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include"
+        });
 
         const data = await response.json();
 
@@ -294,21 +526,8 @@ async function searchHistory() {
             return;
         }
 
-        if (!data.conversations.length) {
-            historyList.innerHTML = "<p>No matching conversations found.</p>";
-            return;
-        }
+        renderHistoryList(data.conversations);
 
-        historyList.innerHTML = data.conversations.map(conversation => `
-            <div class="history-item">
-                <a href="conversation.html?id=${conversation.id}">
-                    ${conversation.title}
-                </a>
-                <span>${formatDate(conversation.updated_at)}</span>
-            </div>
-        `).join("");
-
-        const backButton = document.getElementById("historyBackButton");
         if (backButton) {
             backButton.style.display = "inline-block";
         }
@@ -321,6 +540,7 @@ async function searchHistory() {
 async function loadConversation() {
     const chatBox = document.getElementById("chatBox");
     const titleElement = document.getElementById("conversationTitle");
+    const threeLLMToggle = document.getElementById("threeLLMToggle");
 
     if (!chatBox || !titleElement) {
         return;
@@ -332,6 +552,11 @@ async function loadConversation() {
     if (!conversationId) {
         titleElement.textContent = "New Chat";
         currentConversationId = null;
+        chatBox.innerHTML = "";
+        if (threeLLMToggle) {
+            threeLLMToggle.checked = false;
+        }
+        setThreeLLMToggleLocked(false);
         return;
     }
 
@@ -352,13 +577,47 @@ async function loadConversation() {
 
         titleElement.textContent = data.conversation.title;
 
-        chatBox.innerHTML = data.messages.map(message => `
-            <p>
-                <strong>${message.sender === "user" ? "You" : "LLM"}:</strong>
-                ${message.content}
-            </p>
-        `).join("");
+        if (threeLLMToggle) {
+            threeLLMToggle.checked = Boolean(data.conversation.used_three_llms);
+        }
+        setThreeLLMToggleLocked(true);
 
+        const userMessages = data.messages.filter(message => message.sender === "user");
+
+        let turnHtml = "";
+
+        if (false) {
+            for (const turn of data.turns){
+                const bestModelRow = turn.modelResponses.find(response => response.is_best === 1);
+                const bestModel = bestModelRow ? bestModelRow.model_name : null;
+                turnHtml += renderTurn(
+                    turn.userMessage.content,
+                    turn.modelResponses.map(response => ({
+                        model: response.model_name,
+                        reply: response.response_text
+                    })),
+                    bestModel
+                );
+            }
+        } else {
+            const llmMessages = data.messages.filter(message => message.sender === "llm");
+
+            for (let i = 0; i < userMessages.length; i++) {
+                const userMessage = userMessages[i];
+                const llmMessage = llmMessages[i];
+
+                const singleResponses = llmMessage
+                    ? [{
+                        model: "LLM",
+                        reply: llmMessage.content
+                    }]
+                    : [];
+
+                turnHtml += renderTurn(userMessage.content, singleResponses, "LLM");
+            }
+        }
+
+        chatBox.innerHTML = turnHtml;
         chatBox.scrollTop = chatBox.scrollHeight;
     } catch (error) {
         console.error("Load conversation error:", error);
@@ -367,6 +626,7 @@ async function loadConversation() {
 }
 
 function startNewChat() {
+    currentConversationId = null;
     window.location.href = "conversation.html";
 }
 
@@ -382,11 +642,37 @@ function resetHistory() {
         backButton.style.display = "none";
     }
 
-    loadHistory(); // reload full conversation list
+    loadHistory();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     checkLoginStatus();
     loadHistory();
     loadConversation();
+
+    document.getElementById("useLocal")?.addEventListener("change", function () {
+        document.getElementById("localModels").style.display = this.checked ? "block" : "none";
+        if (this.checked) document.getElementById("usePublic").checked = false;
+        document.getElementById("publicModels").style.display = "none";
+    });
+
+    document.getElementById("usePublic")?.addEventListener("change", function () {
+        document.getElementById("publicModels").style.display = this.checked ? "block" : "none";
+        if (this.checked) document.getElementById("useLocal").checked = false;
+        document.getElementById("localModels").style.display = "none";
+    });
+
+    document.querySelectorAll('input[name="specializedType"]').forEach(radio => {
+    radio.addEventListener("change", function() {
+        const localSection = document.querySelector(".model-section");
+        if (this.value === "weather") {
+            localSection.style.display = "none";
+            document.getElementById("useLocal").checked = false;
+            document.getElementById("localModels").style.display = "none";
+        } else {
+            localSection.style.display = "block";
+        }
+    });
 });
+});
+
